@@ -1,0 +1,279 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { usePeople, useCreateLoan, useUpdateLoan, useLoan, LoanType } from '@/hooks/useLoans';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { z } from 'zod';
+import { cn } from '@/lib/utils';
+
+const loanSchema = z.object({
+  person_id: z.string().min(1, 'Please select a person'),
+  amount: z.number().positive('Amount must be greater than 0'),
+  type: z.enum(['GIVEN', 'TAKEN']),
+  due_date: z.string().optional(),
+  notes: z.string().trim().max(500, 'Notes are too long').optional(),
+});
+
+export default function AddLoan() {
+  const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const isEdit = !!id;
+
+  const { data: people, isLoading: loadingPeople } = usePeople();
+  const { data: existingLoan, isLoading: loadingLoan } = useLoan(id);
+  const createLoan = useCreateLoan();
+  const updateLoan = useUpdateLoan();
+
+  const [personId, setPersonId] = useState(searchParams.get('person') || '');
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<LoanType>('GIVEN');
+  const [dueDate, setDueDate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(false);
+
+  // Initialize form with existing data for edit
+  useEffect(() => {
+    if (isEdit && existingLoan && !initialized) {
+      setPersonId(existingLoan.person_id);
+      setAmount(String(existingLoan.amount));
+      setType(existingLoan.type);
+      setDueDate(existingLoan.due_date || '');
+      setNotes(existingLoan.notes || '');
+      setInitialized(true);
+    }
+  }, [isEdit, existingLoan, initialized]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const data = {
+        person_id: personId,
+        amount: parseFloat(amount),
+        type,
+        due_date: dueDate || undefined,
+        notes: notes || undefined,
+      };
+      
+      loanSchema.parse(data);
+      setErrors({});
+
+      if (isEdit && id) {
+        await updateLoan.mutateAsync({ 
+          id, 
+          amount: data.amount,
+          due_date: data.due_date || null,
+          notes: data.notes || null,
+        });
+      } else {
+        await createLoan.mutateAsync(data);
+      }
+      
+      navigate(-1);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        err.errors.forEach((e) => {
+          const field = e.path[0] as string;
+          fieldErrors[field] = e.message;
+        });
+        setErrors(fieldErrors);
+      }
+    }
+  };
+
+  const isPending = createLoan.isPending || updateLoan.isPending;
+  const isLoading = loadingPeople || (isEdit && loadingLoan);
+
+  if (isLoading) {
+    return (
+      <MobileLayout showNav={false}>
+        <div className="px-4 pt-6 text-center text-muted-foreground">Loading...</div>
+      </MobileLayout>
+    );
+  }
+
+  return (
+    <MobileLayout showNav={false}>
+      <div className="px-4 pt-4 pb-4">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-bold text-foreground">
+            {isEdit ? 'Edit Loan' : 'Add Loan'}
+          </h1>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Loan Type Selection */}
+          {!isEdit && (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setType('GIVEN')}
+                className={cn(
+                  'p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2',
+                  type === 'GIVEN'
+                    ? 'border-loan-given bg-loan-given-light'
+                    : 'border-border bg-card hover:border-loan-given/50'
+                )}
+              >
+                <div className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center',
+                  type === 'GIVEN' ? 'bg-loan-given' : 'bg-secondary'
+                )}>
+                  <ArrowUpRight className={cn(
+                    'w-5 h-5',
+                    type === 'GIVEN' ? 'text-white' : 'text-muted-foreground'
+                  )} />
+                </div>
+                <div className="text-center">
+                  <p className={cn(
+                    'font-medium',
+                    type === 'GIVEN' ? 'text-loan-given' : 'text-foreground'
+                  )}>Money Given</p>
+                  <p className="text-xs text-muted-foreground">You lent money</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setType('TAKEN')}
+                className={cn(
+                  'p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2',
+                  type === 'TAKEN'
+                    ? 'border-loan-taken bg-loan-taken-light'
+                    : 'border-border bg-card hover:border-loan-taken/50'
+                )}
+              >
+                <div className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center',
+                  type === 'TAKEN' ? 'bg-loan-taken' : 'bg-secondary'
+                )}>
+                  <ArrowDownLeft className={cn(
+                    'w-5 h-5',
+                    type === 'TAKEN' ? 'text-white' : 'text-muted-foreground'
+                  )} />
+                </div>
+                <div className="text-center">
+                  <p className={cn(
+                    'font-medium',
+                    type === 'TAKEN' ? 'text-loan-taken' : 'text-foreground'
+                  )}>Money Taken</p>
+                  <p className="text-xs text-muted-foreground">You borrowed money</p>
+                </div>
+              </button>
+            </div>
+          )}
+
+          <Card className="shadow-card">
+            <CardContent className="p-4 space-y-4">
+              {/* Person Selection */}
+              {!isEdit && (
+                <div className="space-y-2">
+                  <Label htmlFor="person">Person *</Label>
+                  <Select value={personId} onValueChange={setPersonId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a person" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {people?.map((person) => (
+                        <SelectItem key={person.id} value={person.id}>
+                          {person.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.person_id && <p className="text-sm text-destructive">{errors.person_id}</p>}
+                  {people?.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No people yet.{' '}
+                      <button
+                        type="button"
+                        onClick={() => navigate('/add-person')}
+                        className="text-primary underline"
+                      >
+                        Add one first
+                      </button>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Amount */}
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount *</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                {errors.amount && <p className="text-sm text-destructive">{errors.amount}</p>}
+              </div>
+
+              {/* Due Date */}
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">Due Date (optional)</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Add any notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+                {errors.notes && <p className="text-sm text-destructive">{errors.notes}</p>}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex gap-3">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => navigate(-1)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              className="flex-1" 
+              disabled={isPending || (!isEdit && people?.length === 0)}
+            >
+              {isPending ? 'Saving...' : isEdit ? 'Update' : 'Add Loan'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </MobileLayout>
+  );
+}
