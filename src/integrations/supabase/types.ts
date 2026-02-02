@@ -14,8 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       loans: {
         Row: {
+          account_id: string | null
           amount: number
           created_at: string
           due_date: string | null
@@ -28,6 +59,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           created_at?: string
           due_date?: string | null
@@ -40,6 +72,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           created_at?: string
           due_date?: string | null
@@ -52,6 +85,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "loans_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loans_person_id_fkey"
             columns: ["person_id"]

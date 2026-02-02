@@ -20,6 +20,7 @@ export interface Loan {
   id: string;
   user_id: string;
   person_id: string;
+  account_id: string | null;
   amount: number;
   type: LoanType;
   status: LoanStatus;
@@ -250,6 +251,7 @@ export function useCreateLoan() {
       person_id: string; 
       amount: number; 
       type: LoanType; 
+      account_id?: string;
       due_date?: string; 
       notes?: string 
     }) => {
@@ -262,6 +264,7 @@ export function useCreateLoan() {
           person_id: data.person_id,
           amount: data.amount,
           type: data.type,
+          account_id: data.account_id || null,
           due_date: data.due_date || null,
           notes: data.notes?.trim() || null,
         })
