@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAccounts, useDeleteAccount, ACCOUNT_ICONS, Account } from '@/hooks/useAccounts';
+import { useLoans, calculateBalance } from '@/hooks/useLoans';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { AmountDisplay } from '@/components/ui/amount-display';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -28,8 +30,27 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 export default function Accounts() {
   const navigate = useNavigate();
   const { data: accounts, isLoading } = useAccounts();
+  const { data: loans } = useLoans();
   const deleteAccount = useDeleteAccount();
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+
+  // Calculate "to receive" amount for each account from GIVEN loans
+  const accountBalances = useMemo(() => {
+    if (!loans) return {};
+    
+    const balances: Record<string, number> = {};
+    
+    loans
+      .filter(loan => loan.type === 'GIVEN' && loan.status !== 'PAID' && loan.account_id)
+      .forEach(loan => {
+        const balance = calculateBalance(loan);
+        if (loan.account_id) {
+          balances[loan.account_id] = (balances[loan.account_id] || 0) + balance;
+        }
+      });
+    
+    return balances;
+  }, [loans]);
 
   const handleDelete = async () => {
     if (accountToDelete) {
@@ -75,6 +96,7 @@ export default function Accounts() {
           <div className="space-y-3">
             {accounts?.map((account) => {
               const IconComponent = iconMap[account.icon] || Wallet;
+              const toReceive = accountBalances[account.id] || 0;
               return (
                 <Card key={account.id} className="shadow-card">
                   <CardContent className="p-4">
@@ -84,8 +106,14 @@ export default function Accounts() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-foreground truncate">{account.name}</p>
-                        {account.description && (
+                        {toReceive > 0 ? (
+                          <p className="text-sm text-loan-given">
+                            To receive: <AmountDisplay amount={toReceive} size="sm" className="text-loan-given" />
+                          </p>
+                        ) : account.description ? (
                           <p className="text-sm text-muted-foreground truncate">{account.description}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No outstanding loans</p>
                         )}
                       </div>
                       <div className="flex gap-2">
