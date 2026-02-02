@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -24,8 +25,9 @@ export default function Dashboard() {
   const createPayment = useCreatePayment();
   const totals = loans ? calculateTotals(loans) : { toReceive: 0, toPay: 0 };
   
-  // Filter to show only open/partial loans
-  const activeLoans = loans?.filter(l => l.status !== 'PAID') || [];
+  // Separate loans by type (only active loans)
+  const loansToReceive = loans?.filter(l => l.type === 'GIVEN' && l.status !== 'PAID') || [];
+  const loansToPay = loans?.filter(l => l.type === 'TAKEN' && l.status !== 'PAID') || [];
 
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [paymentType, setPaymentType] = useState<'full' | 'partial' | null>(null);
@@ -123,38 +125,69 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* All Active Loans */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">Active Loans</h2>
-            <span className="text-sm text-muted-foreground">
-              {activeLoans.length} {activeLoans.length === 1 ? 'loan' : 'loans'}
-            </span>
-          </div>
+        {/* Loans Tabs */}
+        <Tabs defaultValue="to-receive" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="to-receive" className="flex items-center gap-2">
+              <ArrowUpRight className="w-4 h-4" />
+              To Receive ({loansToReceive.length})
+            </TabsTrigger>
+            <TabsTrigger value="to-pay" className="flex items-center gap-2">
+              <ArrowDownLeft className="w-4 h-4" />
+              To Pay ({loansToPay.length})
+            </TabsTrigger>
+          </TabsList>
 
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20 rounded-xl" />
-              ))}
-            </div>
-          ) : activeLoans.length === 0 ? (
-            <Card className="shadow-card">
-              <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground mb-2">No active loans</p>
-                <Link to="/add-loan" className="text-primary font-medium text-sm">
-                  Add your first loan →
-                </Link>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {activeLoans.map((loan) => (
-                <LoanCard key={loan.id} loan={loan} onClick={() => handleLoanClick(loan)} />
-              ))}
-            </div>
-          )}
-        </div>
+          <TabsContent value="to-receive" className="mt-4">
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-xl" />
+                ))}
+              </div>
+            ) : loansToReceive.length === 0 ? (
+              <Card className="shadow-card">
+                <CardContent className="p-6 text-center">
+                  <p className="text-muted-foreground mb-2">No money to receive</p>
+                  <Link to="/add-loan" className="text-primary font-medium text-sm">
+                    Add a loan you gave →
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {loansToReceive.map((loan) => (
+                  <LoanCard key={loan.id} loan={loan} onClick={() => handleLoanClick(loan)} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="to-pay" className="mt-4">
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-xl" />
+                ))}
+              </div>
+            ) : loansToPay.length === 0 ? (
+              <Card className="shadow-card">
+                <CardContent className="p-6 text-center">
+                  <p className="text-muted-foreground mb-2">No money to pay</p>
+                  <Link to="/add-loan" className="text-primary font-medium text-sm">
+                    Add a loan you took →
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {loansToPay.map((loan) => (
+                  <LoanCard key={loan.id} loan={loan} onClick={() => handleLoanClick(loan)} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Payment Dialog */}
