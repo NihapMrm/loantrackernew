@@ -15,6 +15,7 @@ import AddLoan from "./pages/AddLoan";
 import LoanDetail from "./pages/LoanDetail";
 import AddPayment from "./pages/AddPayment";
 import Accounts from "./pages/Accounts";
+import AccountDetail from "./pages/AccountDetail";
 import AddAccount from "./pages/AddAccount";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/loan/:id" element={<LoanDetail />} />
             <Route path="/add-payment/:loanId" element={<AddPayment />} />
             <Route path="/accounts" element={<Accounts />} />
+            <Route path="/account/:id" element={<AccountDetail />} />
             <Route path="/add-account" element={<AddAccount />} />
             <Route path="/edit-account/:id" element={<AddAccount />} />
             <Route path="/settings" element={<Settings />} />
