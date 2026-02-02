@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Plus, Settings } from 'lucide-react';
+import { Home, Users, Plus, Settings, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MobileLayoutProps {
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/people', icon: Users, label: 'People' },
   { path: '/add-loan', icon: Plus, label: 'Add', isAction: true },
+  { path: '/accounts', icon: Wallet, label: 'Accounts' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 

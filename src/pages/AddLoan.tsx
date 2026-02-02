@@ -2,20 +2,31 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { usePeople, useCreateLoan, useUpdateLoan, useLoan, LoanType } from '@/hooks/useLoans';
+import { useAccounts } from '@/hooks/useAccounts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Wallet, PiggyBank, Landmark, CreditCard, Banknote, Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  'wallet': Wallet,
+  'piggy-bank': PiggyBank,
+  'landmark': Landmark,
+  'credit-card': CreditCard,
+  'banknote': Banknote,
+  'building-2': Building2,
+};
 
 const loanSchema = z.object({
   person_id: z.string().min(1, 'Please select a person'),
   amount: z.number().positive('Amount must be greater than 0'),
   type: z.enum(['GIVEN', 'TAKEN']),
+  account_id: z.string().optional(),
   due_date: z.string().optional(),
   notes: z.string().trim().max(500, 'Notes are too long').optional(),
 });
@@ -27,11 +38,13 @@ export default function AddLoan() {
   const isEdit = !!id;
 
   const { data: people, isLoading: loadingPeople } = usePeople();
+  const { data: accounts, isLoading: loadingAccounts } = useAccounts();
   const { data: existingLoan, isLoading: loadingLoan } = useLoan(id);
   const createLoan = useCreateLoan();
   const updateLoan = useUpdateLoan();
 
   const [personId, setPersonId] = useState(searchParams.get('person') || '');
+  const [accountId, setAccountId] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<LoanType>('GIVEN');
   const [dueDate, setDueDate] = useState('');
@@ -43,6 +56,7 @@ export default function AddLoan() {
   useEffect(() => {
     if (isEdit && existingLoan && !initialized) {
       setPersonId(existingLoan.person_id);
+      setAccountId(existingLoan.account_id || '');
       setAmount(String(existingLoan.amount));
       setType(existingLoan.type);
       setDueDate(existingLoan.due_date || '');
@@ -59,6 +73,7 @@ export default function AddLoan() {
         person_id: personId,
         amount: parseFloat(amount),
         type,
+        account_id: accountId || undefined,
         due_date: dueDate || undefined,
         notes: notes || undefined,
       };
@@ -91,7 +106,7 @@ export default function AddLoan() {
   };
 
   const isPending = createLoan.isPending || updateLoan.isPending;
-  const isLoading = loadingPeople || (isEdit && loadingLoan);
+  const isLoading = loadingPeople || loadingAccounts || (isEdit && loadingLoan);
 
   if (isLoading) {
     return (
@@ -209,6 +224,52 @@ export default function AddLoan() {
                   )}
                 </div>
               )}
+
+              {/* Account Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="account">Account (optional)</Label>
+                <Select value={accountId} onValueChange={setAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an account">
+                      {accountId && accounts?.find(a => a.id === accountId) && (
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const account = accounts?.find(a => a.id === accountId);
+                            const IconComponent = account ? (iconMap[account.icon] || Wallet) : Wallet;
+                            return <IconComponent className="w-4 h-4" />;
+                          })()}
+                          <span>{accounts?.find(a => a.id === accountId)?.name}</span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts?.map((account) => {
+                      const IconComponent = iconMap[account.icon] || Wallet;
+                      return (
+                        <SelectItem key={account.id} value={account.id}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="w-4 h-4" />
+                            <span>{account.name}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {accounts?.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No accounts yet.{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate('/add-account')}
+                      className="text-primary underline"
+                    >
+                      Create one
+                    </button>
+                  </p>
+                )}
+              </div>
 
               {/* Amount */}
               <div className="space-y-2">
