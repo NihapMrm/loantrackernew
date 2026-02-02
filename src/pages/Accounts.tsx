@@ -98,7 +98,11 @@ export default function Accounts() {
               const IconComponent = iconMap[account.icon] || Wallet;
               const toReceive = accountBalances[account.id] || 0;
               return (
-                <Card key={account.id} className="shadow-card">
+                <Card 
+                  key={account.id} 
+                  className="shadow-card cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/account/${account.id}`)}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -116,7 +120,7 @@ export default function Accounts() {
                           <p className="text-sm text-muted-foreground">No outstanding loans</p>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button 
                           variant="ghost" 
                           size="icon"
