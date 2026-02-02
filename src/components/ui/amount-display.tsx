@@ -16,9 +16,9 @@ export function AmountDisplay({
   showSign = false,
   className 
 }: AmountDisplayProps) {
-  const formatted = new Intl.NumberFormat('en-US', {
+  const formatted = new Intl.NumberFormat('en-LK', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'LKR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(Math.abs(amount));

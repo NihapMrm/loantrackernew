@@ -29,7 +29,7 @@ export default function AddPayment() {
     amount: z
       .number()
       .positive('Amount must be greater than 0')
-      .max(balance, `Amount cannot exceed remaining balance of $${balance.toFixed(2)}`),
+      .max(balance, `Amount cannot exceed remaining balance of Rs ${balance.toFixed(2)}`),
     payment_date: z.string().min(1, 'Payment date is required'),
     notes: z.string().trim().max(500, 'Notes are too long').optional(),
   });
@@ -139,7 +139,7 @@ export default function AddPayment() {
                   </Button>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rs</span>
                   <Input
                     id="amount"
                     type="number"
