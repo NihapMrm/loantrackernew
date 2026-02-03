@@ -118,46 +118,46 @@ export default function AddLoan() {
 
   return (
     <MobileLayout showNav={false}>
-      <div className="px-4 pt-4 pb-4">
+      <div className="px-4 pt-4 pb-4 max-w-2xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-foreground">
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground">
             {isEdit ? 'Edit Loan' : 'Add Loan'}
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
           {/* Loan Type Selection */}
           {!isEdit && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 lg:gap-4">
               <button
                 type="button"
                 onClick={() => setType('GIVEN')}
                 className={cn(
-                  'p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2',
+                  'p-4 lg:p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-2',
                   type === 'GIVEN'
                     ? 'border-loan-given bg-loan-given-light'
                     : 'border-border bg-card hover:border-loan-given/50'
                 )}
               >
                 <div className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center',
+                  'w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center',
                   type === 'GIVEN' ? 'bg-loan-given' : 'bg-secondary'
                 )}>
                   <ArrowUpRight className={cn(
-                    'w-5 h-5',
+                    'w-5 h-5 lg:w-6 lg:h-6',
                     type === 'GIVEN' ? 'text-white' : 'text-muted-foreground'
                   )} />
                 </div>
                 <div className="text-center">
                   <p className={cn(
-                    'font-medium',
+                    'font-medium lg:text-lg',
                     type === 'GIVEN' ? 'text-loan-given' : 'text-foreground'
                   )}>Money Given</p>
-                  <p className="text-xs text-muted-foreground">You lent money</p>
+                  <p className="text-xs lg:text-sm text-muted-foreground">You lent money</p>
                 </div>
               </button>
 
@@ -165,34 +165,34 @@ export default function AddLoan() {
                 type="button"
                 onClick={() => setType('TAKEN')}
                 className={cn(
-                  'p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2',
+                  'p-4 lg:p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-2',
                   type === 'TAKEN'
                     ? 'border-loan-taken bg-loan-taken-light'
                     : 'border-border bg-card hover:border-loan-taken/50'
                 )}
               >
                 <div className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center',
+                  'w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center',
                   type === 'TAKEN' ? 'bg-loan-taken' : 'bg-secondary'
                 )}>
                   <ArrowDownLeft className={cn(
-                    'w-5 h-5',
+                    'w-5 h-5 lg:w-6 lg:h-6',
                     type === 'TAKEN' ? 'text-white' : 'text-muted-foreground'
                   )} />
                 </div>
                 <div className="text-center">
                   <p className={cn(
-                    'font-medium',
+                    'font-medium lg:text-lg',
                     type === 'TAKEN' ? 'text-loan-taken' : 'text-foreground'
                   )}>Money Taken</p>
-                  <p className="text-xs text-muted-foreground">You borrowed money</p>
+                  <p className="text-xs lg:text-sm text-muted-foreground">You borrowed money</p>
                 </div>
               </button>
             </div>
           )}
 
           <Card className="shadow-card">
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-4 space-y-4 lg:p-6">
               {/* Person Selection */}
               {!isEdit && (
                 <div className="space-y-2">
@@ -316,18 +316,18 @@ export default function AddLoan() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 lg:justify-end">
             <Button 
               type="button" 
               variant="outline" 
-              className="flex-1"
+              className="flex-1 lg:flex-none lg:w-32"
               onClick={() => navigate(-1)}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              className="flex-1" 
+              className="flex-1 lg:flex-none lg:w-32" 
               disabled={isPending || (!isEdit && people?.length === 0)}
             >
               {isPending ? 'Saving...' : isEdit ? 'Update' : 'Add Loan'}

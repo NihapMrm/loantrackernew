@@ -44,20 +44,21 @@ export default function People() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-4 space-y-4">
+      <div className="px-4 pt-6 pb-4 space-y-4 max-w-6xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">People</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground">People</h1>
           <Link to="/add-person">
             <Button size="sm" variant="outline" className="gap-2">
               <UserPlus className="w-4 h-4" />
-              Add
+              <span className="hidden lg:inline">Add Person</span>
+              <span className="lg:hidden">Add</span>
             </Button>
           </Link>
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative lg:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search people..."
@@ -69,14 +70,14 @@ export default function People() {
 
         {/* People List */}
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-20 rounded-xl" />
             ))}
           </div>
         ) : filteredPeople.length === 0 ? (
-          <Card className="shadow-card">
-            <CardContent className="p-6 text-center">
+          <Card className="shadow-card lg:max-w-md">
+            <CardContent className="p-6 text-center lg:py-8">
               {search ? (
                 <p className="text-muted-foreground">No people matching "{search}"</p>
               ) : (
@@ -90,7 +91,7 @@ export default function People() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {filteredPeople.map((person) => (
               <PersonCard key={person.id} person={person} />
             ))}

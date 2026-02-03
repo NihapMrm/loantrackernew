@@ -71,14 +71,14 @@ export default function PersonDetail() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-4 pb-4 space-y-4">
+      <div className="px-4 pt-4 pb-4 space-y-4 max-w-4xl mx-auto lg:px-8 lg:pt-8 lg:space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">{person.name}</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground">{person.name}</h1>
           </div>
           <Link to={`/edit-person/${id}`}>
             <Button variant="ghost" size="icon">
@@ -110,13 +110,13 @@ export default function PersonDetail() {
 
         {/* Person Info */}
         <Card className="shadow-card">
-          <CardContent className="p-4 space-y-3">
+          <CardContent className="p-4 space-y-3 lg:p-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                <User className="w-6 h-6 text-muted-foreground" />
+              <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-secondary flex items-center justify-center">
+                <User className="w-6 h-6 lg:w-8 lg:h-8 text-muted-foreground" />
               </div>
               <div>
-                <p className="font-medium text-foreground">{person.name}</p>
+                <p className="font-medium text-foreground lg:text-lg">{person.name}</p>
                 {person.phone && (
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <Phone className="w-3 h-3" /> {person.phone}
@@ -134,17 +134,17 @@ export default function PersonDetail() {
         </Card>
 
         {/* Balance Summary */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:gap-4">
           <Card className="bg-loan-given-light border-0 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs font-medium text-loan-given-foreground mb-1">To Receive</p>
-              <AmountDisplay amount={toReceive} size="lg" className="text-loan-given" />
+            <CardContent className="p-4 text-center lg:p-6">
+              <p className="text-xs lg:text-sm font-medium text-loan-given-foreground mb-1">To Receive</p>
+              <AmountDisplay amount={toReceive} size="lg" className="text-loan-given lg:text-2xl" />
             </CardContent>
           </Card>
           <Card className="bg-loan-taken-light border-0 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs font-medium text-loan-taken-foreground mb-1">To Pay</p>
-              <AmountDisplay amount={toPay} size="lg" className="text-loan-taken" />
+            <CardContent className="p-4 text-center lg:p-6">
+              <p className="text-xs lg:text-sm font-medium text-loan-taken-foreground mb-1">To Pay</p>
+              <AmountDisplay amount={toPay} size="lg" className="text-loan-taken lg:text-2xl" />
             </CardContent>
           </Card>
         </div>
@@ -152,7 +152,7 @@ export default function PersonDetail() {
         {/* Loans Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">Loans</h2>
+            <h2 className="text-lg lg:text-xl font-semibold text-foreground">Loans</h2>
             <Link to={`/add-loan?person=${id}`}>
               <Button size="sm" variant="outline" className="gap-1">
                 <Plus className="w-4 h-4" />
@@ -163,12 +163,12 @@ export default function PersonDetail() {
 
           {loans?.length === 0 ? (
             <Card className="shadow-card">
-              <CardContent className="p-6 text-center">
+              <CardContent className="p-6 text-center lg:py-8">
                 <p className="text-muted-foreground">No loans with this person yet</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="grid gap-3 lg:grid-cols-2">
               {loans?.map((loan) => (
                 <LoanCard key={loan.id} loan={loan} />
               ))}

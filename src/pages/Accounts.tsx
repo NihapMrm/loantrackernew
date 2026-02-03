@@ -61,15 +61,19 @@ export default function Accounts() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-24">
+      <div className="px-4 pt-6 pb-24 max-w-6xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Accounts</h1>
-            <p className="text-sm text-muted-foreground">Manage your payment accounts</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Accounts</h1>
+            <p className="text-sm lg:text-base text-muted-foreground">Manage your payment accounts</p>
           </div>
-          <Button size="icon" onClick={() => navigate('/add-account')}>
+          <Button size="icon" onClick={() => navigate('/add-account')} className="lg:hidden">
             <Plus className="w-5 h-5" />
+          </Button>
+          <Button onClick={() => navigate('/add-account')} className="hidden lg:flex gap-2">
+            <Plus className="w-5 h-5" />
+            Add Account
           </Button>
         </div>
 
@@ -77,13 +81,13 @@ export default function Accounts() {
         {isLoading ? (
           <div className="text-center text-muted-foreground py-8">Loading...</div>
         ) : accounts?.length === 0 ? (
-          <Card className="shadow-card">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wallet className="w-8 h-8 text-muted-foreground" />
+          <Card className="shadow-card lg:max-w-md lg:mx-auto">
+            <CardContent className="p-8 text-center lg:p-12">
+              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wallet className="w-8 h-8 lg:w-10 lg:h-10 text-muted-foreground" />
               </div>
-              <h3 className="font-medium text-foreground mb-1">No accounts yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <h3 className="font-medium text-foreground mb-1 lg:text-lg">No accounts yet</h3>
+              <p className="text-sm lg:text-base text-muted-foreground mb-4">
                 Create accounts like Cash, Savings, Bank to track where your loans come from
               </p>
               <Button onClick={() => navigate('/add-account')}>
@@ -93,7 +97,7 @@ export default function Accounts() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {accounts?.map((account) => {
               const IconComponent = iconMap[account.icon] || Wallet;
               const toReceive = accountBalances[account.id] || 0;
@@ -103,13 +107,13 @@ export default function Accounts() {
                   className="shadow-card cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => navigate(`/account/${account.id}`)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 lg:p-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                        <IconComponent className="w-6 h-6 text-primary" />
+                      <div className="w-12 h-12 lg:w-14 lg:h-14 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <IconComponent className="w-6 h-6 lg:w-7 lg:h-7 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{account.name}</p>
+                        <p className="font-medium text-foreground truncate lg:text-lg">{account.name}</p>
                         {toReceive > 0 ? (
                           <p className="text-sm text-loan-given">
                             To receive: <AmountDisplay amount={toReceive} size="sm" className="text-loan-given" />
