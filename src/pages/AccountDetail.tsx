@@ -61,42 +61,42 @@ export default function AccountDetail() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-24">
+      <div className="px-4 pt-6 pb-24 max-w-4xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate('/accounts')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">{account.name}</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{account.name}</h1>
             {account.description && (
-              <p className="text-sm text-muted-foreground">{account.description}</p>
+              <p className="text-sm lg:text-base text-muted-foreground">{account.description}</p>
             )}
           </div>
         </div>
 
         {/* Summary Card */}
         <Card className="shadow-card mb-6">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Total to Receive</p>
-            <AmountDisplay amount={totalToReceive} size="xl" type="GIVEN" />
-            <p className="text-xs text-muted-foreground mt-2">
+          <CardContent className="p-4 lg:p-6">
+            <p className="text-sm lg:text-base text-muted-foreground mb-1">Total to Receive</p>
+            <AmountDisplay amount={totalToReceive} size="xl" type="GIVEN" className="lg:text-3xl" />
+            <p className="text-xs lg:text-sm text-muted-foreground mt-2">
               From {accountLoans.length} outstanding {accountLoans.length === 1 ? 'loan' : 'loans'}
             </p>
           </CardContent>
         </Card>
 
         {/* Loans List */}
-        <h2 className="text-lg font-semibold text-foreground mb-3">Who Owes You</h2>
+        <h2 className="text-lg lg:text-xl font-semibold text-foreground mb-3">Who Owes You</h2>
         
         {accountLoans.length === 0 ? (
           <Card className="shadow-card">
-            <CardContent className="p-6 text-center">
+            <CardContent className="p-6 text-center lg:py-8">
               <p className="text-muted-foreground">No outstanding loans from this account</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-2">
             {accountLoans.map((loan) => {
               const balance = calculateBalance(loan);
               return (
@@ -105,14 +105,14 @@ export default function AccountDetail() {
                   className="shadow-card cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => navigate(`/loan/${loan.id}`)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 lg:p-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-primary" />
+                        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">
+                          <p className="font-medium text-foreground lg:text-lg">
                             {loan.person?.name || 'Unknown'}
                           </p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">

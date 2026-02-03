@@ -68,14 +68,14 @@ export default function LoanDetail() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-4 pb-4 space-y-4">
+      <div className="px-4 pt-4 pb-4 space-y-4 max-w-4xl mx-auto lg:px-8 lg:pt-8 lg:space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Loan Details</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground">Loan Details</h1>
           </div>
           <Link to={`/edit-loan/${loan.id}`}>
             <Button variant="ghost" size="icon">
@@ -105,78 +105,80 @@ export default function LoanDetail() {
           </AlertDialog>
         </div>
 
-        {/* Loan Summary Card */}
-        <Card className={`shadow-card border-0 ${loan.type === 'GIVEN' ? 'bg-loan-given-light' : 'bg-loan-taken-light'}`}>
-          <CardContent className="p-4 space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <LoanTypeBadge type={loan.type} />
-                  <StatusBadge status={loan.status} />
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
+          {/* Loan Summary Card */}
+          <Card className={`shadow-card border-0 ${loan.type === 'GIVEN' ? 'bg-loan-given-light' : 'bg-loan-taken-light'}`}>
+            <CardContent className="p-4 space-y-4 lg:p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <LoanTypeBadge type={loan.type} />
+                    <StatusBadge status={loan.status} />
+                  </div>
+                  <Link to={`/person/${loan.person_id}`} className="flex items-center gap-2 text-sm hover:underline">
+                    <User className="w-4 h-4" />
+                    {loan.person?.name || 'Unknown'}
+                  </Link>
                 </div>
-                <Link to={`/person/${loan.person_id}`} className="flex items-center gap-2 text-sm hover:underline">
-                  <User className="w-4 h-4" />
-                  {loan.person?.name || 'Unknown'}
-                </Link>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {loan.type === 'GIVEN' ? 'Remaining to receive' : 'Remaining to pay'}
+                  </p>
+                  <AmountDisplay amount={balance} type={loan.type} size="xl" className="lg:text-2xl" />
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground mb-1">
-                  {loan.type === 'GIVEN' ? 'Remaining to receive' : 'Remaining to pay'}
-                </p>
-                <AmountDisplay amount={balance} type={loan.type} size="xl" />
-              </div>
-            </div>
 
-            {/* Progress */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  <AmountDisplay amount={totalPaid} size="sm" /> paid
-                </span>
-                <span className="text-muted-foreground">
-                  of <AmountDisplay amount={Number(loan.amount)} size="sm" />
-                </span>
+              {/* Progress */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    <AmountDisplay amount={totalPaid} size="sm" /> paid
+                  </span>
+                  <span className="text-muted-foreground">
+                    of <AmountDisplay amount={Number(loan.amount)} size="sm" />
+                  </span>
+                </div>
+                <Progress value={paymentProgress} className="h-2" />
               </div>
-              <Progress value={paymentProgress} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Details */}
-        <Card className="shadow-card">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Created</p>
-                <p className="font-medium">{format(new Date(loan.created_at), 'MMMM d, yyyy')}</p>
-              </div>
-            </div>
-            {loan.due_date && (
+          {/* Details */}
+          <Card className="shadow-card">
+            <CardContent className="p-4 space-y-3 lg:p-6">
               <div className="flex items-center gap-3">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Due date</p>
-                  <p className="font-medium">{format(new Date(loan.due_date), 'MMMM d, yyyy')}</p>
+                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="font-medium">{format(new Date(loan.created_at), 'MMMM d, yyyy')}</p>
                 </div>
               </div>
-            )}
-            {loan.notes && (
-              <div className="flex items-start gap-3">
-                <FileText className="w-4 h-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Notes</p>
-                  <p>{loan.notes}</p>
+              {loan.due_date && (
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Due date</p>
+                    <p className="font-medium">{format(new Date(loan.due_date), 'MMMM d, yyyy')}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+              {loan.notes && (
+                <div className="flex items-start gap-3">
+                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Notes</p>
+                    <p>{loan.notes}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Payments */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">Payments</h2>
+            <h2 className="text-lg lg:text-xl font-semibold text-foreground">Payments</h2>
             {loan.status !== 'PAID' && (
               <Link to={`/add-payment/${loan.id}`}>
                 <Button size="sm" variant="outline" className="gap-1">
@@ -189,12 +191,12 @@ export default function LoanDetail() {
 
           {!loan.payments?.length ? (
             <Card className="shadow-card">
-              <CardContent className="p-6 text-center">
+              <CardContent className="p-6 text-center lg:py-8">
                 <p className="text-muted-foreground">No payments recorded yet</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-2 lg:grid-cols-2">
               {loan.payments.map((payment) => (
                 <PaymentRow 
                   key={payment.id} 
