@@ -206,34 +206,34 @@ export default function Dashboard() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* View Details Link */}
-          {selectedLoan && !paymentType && (
-            <Link 
-              to={`/loan/${selectedLoan.id}`}
-              className="text-sm text-primary hover:underline flex items-center justify-center gap-1 -mt-2"
-            >
-              View full details →
-            </Link>
-          )}
-
           {!paymentType ? (
-            <div className="grid grid-cols-2 gap-3 py-4">
-              <Button
-                variant="outline"
-                className="h-24 flex flex-col gap-2"
-                onClick={() => handlePaymentTypeSelect('partial')}
-              >
-                <span className="text-2xl">📝</span>
-                <span>Partial Payment</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex flex-col gap-2"
-                onClick={() => handlePaymentTypeSelect('full')}
-              >
-                <span className="text-2xl">✅</span>
-                <span>Full Payment</span>
-              </Button>
+            <div className="py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  className="h-24 flex flex-col gap-2"
+                  onClick={() => handlePaymentTypeSelect('partial')}
+                >
+                  <span className="text-2xl">📝</span>
+                  <span>Partial Payment</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-24 flex flex-col gap-2"
+                  onClick={() => handlePaymentTypeSelect('full')}
+                >
+                  <span className="text-2xl">✅</span>
+                  <span>Full Payment</span>
+                </Button>
+              </div>
+              {selectedLoan && (
+                <Link 
+                  to={`/loan/${selectedLoan.id}`}
+                  className="text-sm text-primary hover:underline flex items-center justify-center gap-1"
+                >
+                  View full details →
+                </Link>
+              )}
             </div>
           ) : (
             <div className="py-4 space-y-4">
