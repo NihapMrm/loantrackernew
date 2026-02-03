@@ -206,6 +206,16 @@ export default function Dashboard() {
             </DialogDescription>
           </DialogHeader>
 
+          {/* View Details Link */}
+          {selectedLoan && !paymentType && (
+            <Link 
+              to={`/loan/${selectedLoan.id}`}
+              className="text-sm text-primary hover:underline flex items-center justify-center gap-1 -mt-2"
+            >
+              View full details →
+            </Link>
+          )}
+
           {!paymentType ? (
             <div className="grid grid-cols-2 gap-3 py-4">
               <Button
