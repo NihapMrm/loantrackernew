@@ -78,48 +78,48 @@ export default function Dashboard() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-4 space-y-6">
+      <div className="px-4 pt-6 pb-4 space-y-6 max-w-6xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-            <Wallet className="w-5 h-5 text-primary-foreground" />
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary rounded-xl flex items-center justify-center">
+            <Wallet className="w-5 h-5 lg:w-6 lg:h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">LoanTracker</h1>
-            <p className="text-sm text-muted-foreground">Your loan overview</p>
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground">LoanTracker</h1>
+            <p className="text-sm lg:text-base text-muted-foreground">Your loan overview</p>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="bg-loan-given-light border-0 shadow-sm">
-            <CardContent className="p-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <Card className="bg-loan-given-light border-0 shadow-sm lg:col-span-2">
+            <CardContent className="p-4 lg:p-6">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-loan-given/10 rounded-lg flex items-center justify-center">
-                  <ArrowUpRight className="w-4 h-4 text-loan-given" />
+                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-loan-given/10 rounded-lg flex items-center justify-center">
+                  <ArrowUpRight className="w-4 h-4 lg:w-5 lg:h-5 text-loan-given" />
                 </div>
-                <span className="text-xs font-medium text-loan-given-foreground">To Receive</span>
+                <span className="text-xs lg:text-sm font-medium text-loan-given-foreground">To Receive</span>
               </div>
               {isLoading ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-24 lg:h-10 lg:w-32" />
               ) : (
-                <AmountDisplay amount={totals.toReceive} size="lg" className="text-loan-given" />
+                <AmountDisplay amount={totals.toReceive} size="lg" className="text-loan-given lg:text-2xl" />
               )}
             </CardContent>
           </Card>
 
-          <Card className="bg-loan-taken-light border-0 shadow-sm">
-            <CardContent className="p-4">
+          <Card className="bg-loan-taken-light border-0 shadow-sm lg:col-span-2">
+            <CardContent className="p-4 lg:p-6">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-loan-taken/10 rounded-lg flex items-center justify-center">
-                  <ArrowDownLeft className="w-4 h-4 text-loan-taken" />
+                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-loan-taken/10 rounded-lg flex items-center justify-center">
+                  <ArrowDownLeft className="w-4 h-4 lg:w-5 lg:h-5 text-loan-taken" />
                 </div>
-                <span className="text-xs font-medium text-loan-taken-foreground">To Pay</span>
+                <span className="text-xs lg:text-sm font-medium text-loan-taken-foreground">To Pay</span>
               </div>
               {isLoading ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-24 lg:h-10 lg:w-32" />
               ) : (
-                <AmountDisplay amount={totals.toPay} size="lg" className="text-loan-taken" />
+                <AmountDisplay amount={totals.toPay} size="lg" className="text-loan-taken lg:text-2xl" />
               )}
             </CardContent>
           </Card>
@@ -127,7 +127,7 @@ export default function Dashboard() {
 
         {/* Loans Tabs */}
         <Tabs defaultValue="to-receive" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
             <TabsTrigger value="to-receive" className="flex items-center gap-2">
               <ArrowUpRight className="w-4 h-4" />
               To Receive ({loansToReceive.length})
@@ -140,14 +140,14 @@ export default function Dashboard() {
 
           <TabsContent value="to-receive" className="mt-4">
             {isLoading ? (
-              <div className="space-y-3">
+              <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-20 rounded-xl" />
                 ))}
               </div>
             ) : loansToReceive.length === 0 ? (
               <Card className="shadow-card">
-                <CardContent className="p-6 text-center">
+                <CardContent className="p-6 text-center lg:py-12">
                   <p className="text-muted-foreground mb-2">No money to receive</p>
                   <Link to="/add-loan" className="text-primary font-medium text-sm">
                     Add a loan you gave →
@@ -155,7 +155,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                 {loansToReceive.map((loan) => (
                   <LoanCard key={loan.id} loan={loan} onClick={() => handleLoanClick(loan)} />
                 ))}
@@ -165,14 +165,14 @@ export default function Dashboard() {
 
           <TabsContent value="to-pay" className="mt-4">
             {isLoading ? (
-              <div className="space-y-3">
+              <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-20 rounded-xl" />
                 ))}
               </div>
             ) : loansToPay.length === 0 ? (
               <Card className="shadow-card">
-                <CardContent className="p-6 text-center">
+                <CardContent className="p-6 text-center lg:py-12">
                   <p className="text-muted-foreground mb-2">No money to pay</p>
                   <Link to="/add-loan" className="text-primary font-medium text-sm">
                     Add a loan you took →
@@ -180,7 +180,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                 {loansToPay.map((loan) => (
                   <LoanCard key={loan.id} loan={loan} onClick={() => handleLoanClick(loan)} />
                 ))}
