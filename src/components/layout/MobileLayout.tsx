@@ -21,7 +21,7 @@ export function MobileLayout({ children, showNav = true }: MobileLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className={cn("flex-1", showNav && "pb-20 lg:pb-6")}>
+      <main className={cn("flex-1", showNav && "pb-20 lg:pb-6 lg:pt-20")}>
         {children}
       </main>
 
