@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wallet, ArrowRightLeft, Shield } from 'lucide-react';
+import { Wallet, ArrowRightLeft, Shield, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -21,6 +22,8 @@ export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   // Form state
   const [email, setEmail] = useState('');
@@ -90,6 +93,35 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Check your email for the password reset link!');
+        setShowForgotPassword(false);
+        setResetEmail('');
+      }
+    } catch (err) {
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -114,6 +146,44 @@ export default function Auth() {
 
         {/* Auth card */}
         <Card className="w-full max-w-sm shadow-card animate-slide-up">
+          {showForgotPassword ? (
+            <>
+              <CardHeader>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-fit -ml-2 mb-2"
+                  onClick={() => setShowForgotPassword(false)}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
+                <CardTitle>Reset Password</CardTitle>
+                <CardDescription>
+                  Enter your email and we'll send you a link to reset your password.
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleForgotPassword}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email</Label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                  </Button>
+                </CardContent>
+              </form>
+            </>
+          ) : (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
@@ -170,9 +240,21 @@ export default function Auth() {
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? 'Please wait...' : activeTab === 'login' ? 'Sign In' : 'Create Account'}
                 </Button>
+
+                {activeTab === 'login' && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full text-muted-foreground"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Forgot password?
+                  </Button>
+                )}
               </CardContent>
             </form>
           </Tabs>
+          )}
         </Card>
 
         {/* Features preview */}
