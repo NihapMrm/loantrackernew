@@ -18,16 +18,9 @@ export function DesktopSidebar() {
   const location = useLocation();
 
   return (
-    <aside className="w-16 border-r bg-card flex flex-col items-center py-4 gap-2">
-      {/* Logo */}
-      <Link to="/" className="mb-4">
-        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-          <Wallet className="w-5 h-5 text-primary-foreground" />
-        </div>
-      </Link>
-
+    <aside className="w-16 border-r bg-card flex flex-col items-center py-6 gap-2">
       {/* Nav Items */}
-      <nav className="flex flex-col items-center gap-1 flex-1">
+      <nav className="flex flex-col items-center gap-3 flex-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
