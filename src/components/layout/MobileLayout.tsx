@@ -1,11 +1,10 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Plus, Settings, Wallet, PanelLeft } from 'lucide-react';
+import { Home, Users, Plus, Settings, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { DesktopSidebar } from './DesktopSidebar';
-import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -74,26 +73,15 @@ export function MobileLayout({ children, showNav = true }: MobileLayoutProps) {
     );
   }
 
-  // Desktop layout with left sidebar
+  // Desktop layout with icon-only sidebar
   return (
-    <SidebarProvider>
+    <TooltipProvider>
       <div className="min-h-screen flex w-full">
         {showNav && <DesktopSidebar />}
-        <div className="flex-1 flex flex-col">
-          {showNav && (
-            <header className="h-14 border-b flex items-center px-4 bg-background">
-              <SidebarTrigger>
-                <Button variant="ghost" size="icon">
-                  <PanelLeft className="w-5 h-5" />
-                </Button>
-              </SidebarTrigger>
-            </header>
-          )}
-          <main className="flex-1">
-            {children}
-          </main>
-        </div>
+        <main className="flex-1">
+          {children}
+        </main>
       </div>
-    </SidebarProvider>
+    </TooltipProvider>
   );
 }
