@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/integrations/firebase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -104,19 +105,21 @@ export default function Auth() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      const actionCodeSettings = {
+        url: window.location.origin + '/reset-password',
+        handleCodeInApp: true,
+      };
       
-      if (error) {
-        toast.error(error.message);
+      await sendPasswordResetEmail(auth, resetEmail.trim(), actionCodeSettings);
+      toast.success('Password reset email sent! Check your inbox (and spam folder).');
+      setShowForgotPassword(false);
+      setResetEmail('');
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        toast.error('No account found with this email address');
       } else {
-        toast.success('Check your email for the password reset link!');
-        setShowForgotPassword(false);
-        setResetEmail('');
+        toast.error(err.message || 'An error occurred. Please try again.');
       }
-    } catch (err) {
-      toast.error('An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

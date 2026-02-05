@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { signInWithEmailAndPassword, updatePassword } from 'firebase/auth';
+import { auth } from '@/integrations/firebase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -63,23 +64,11 @@ export default function Settings() {
 
     try {
       // First verify current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
-        password: currentPassword,
-      });
-
-      if (signInError) {
-        setErrors({ currentPassword: 'Current password is incorrect' });
-        setIsSubmitting(false);
-        return;
-      }
+      await signInWithEmailAndPassword(auth, user?.email || '', currentPassword);
 
       // Update to new password
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      
-      if (error) {
-        toast.error(error.message);
-      } else {
+      if (user) {
+        await updatePassword(user, newPassword);
         toast.success('Password updated successfully!');
         setIsChangingPassword(false);
         setCurrentPassword('');
@@ -87,8 +76,12 @@ export default function Settings() {
         setConfirmPassword('');
         setErrors({});
       }
-    } catch (err) {
-      toast.error('An error occurred. Please try again.');
+    } catch (err: any) {
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setErrors({ currentPassword: 'Current password is incorrect' });
+      } else {
+        toast.error(err.message || 'An error occurred. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

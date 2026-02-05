@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { confirmPasswordReset } from 'firebase/auth';
+import { auth } from '@/integrations/firebase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,33 +27,16 @@ export default function ResetPassword() {
   const [isValidSession, setIsValidSession] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [searchParams] = useSearchParams();
+  const oobCode = searchParams.get('oobCode');
+
   useEffect(() => {
-    // Check if we have a valid recovery session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Listen for auth state changes (recovery link sets session)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          setIsValidSession(true);
-          setIsLoading(false);
-        } else if (session) {
-          setIsValidSession(true);
-          setIsLoading(false);
-        }
-      });
-
-      // If already has session, allow password update
-      if (session) {
-        setIsValidSession(true);
-      }
-      setIsLoading(false);
-
-      return () => subscription.unsubscribe();
-    };
-
-    checkSession();
-  }, []);
+    // Check if we have a valid oobCode from the reset link
+    if (oobCode) {
+      setIsValidSession(true);
+    }
+    setIsLoading(false);
+  }, [oobCode]);
 
   const validateForm = () => {
     try {
@@ -80,16 +64,16 @@ export default function ResetPassword() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Password updated successfully!');
-        navigate('/auth', { replace: true });
+      if (!oobCode) {
+        toast.error('Invalid password reset link');
+        return;
       }
-    } catch (err) {
-      toast.error('An error occurred. Please try again.');
+      
+      await confirmPasswordReset(auth, oobCode, password);
+      toast.success('Password updated successfully!');
+      navigate('/auth', { replace: true });
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
