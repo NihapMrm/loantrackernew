@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "508017051736",
+    "project_id": "loantracker-d3616",
+    "storage_bucket": "loantracker-d3616.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:508017051736:android:459a572226100d5374a22d",
+        "android_client_info": {
+          "package_name": "com.loantracker.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "508017051736-qpvdc2778cbak57qvshachq2cdoqn9l2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvPwENBNvTRMC4pb9e4bqGLPmF4e2V-68"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "508017051736-qpvdc2778cbak57qvshachq2cdoqn9l2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
