@@ -6,6 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
@@ -19,6 +20,11 @@ export function DesktopSidebar() {
 
   return (
     <aside className="w-16 border-r bg-card flex flex-col items-center py-6 gap-2">
+      {/* Offline Indicator at top */}
+      <div className="mb-2">
+        <OfflineIndicator />
+      </div>
+
       {/* Nav Items */}
       <nav className="flex flex-col items-center gap-3 flex-1">
         {navItems.map((item) => {

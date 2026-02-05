@@ -16,6 +16,11 @@ import {
 import { db } from '@/integrations/firebase/client';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
+import { offlineQueue } from '@/lib/offline-queue';
+import { useNetworkStatus } from './useNetworkStatus';
+
+// Helper to generate temporary IDs for offline creates
+const generateTempId = () => `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 export interface Account {
   id: string;
@@ -94,10 +99,16 @@ export function useAccount(id: string | undefined) {
 export function useCreateAccount() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isOnline } = useNetworkStatus();
   
   return useMutation({
     mutationFn: async (data: { name: string; description?: string; icon?: string }) => {
       if (!user) throw new Error('Not authenticated');
+      
+      // If offline, skip Firebase call
+      if (!isOnline) {
+        return { id: generateTempId(), ...data };
+      }
       
       const docRef = await addDoc(collection(db, 'accounts'), {
         user_id: user.uid,
@@ -110,21 +121,84 @@ export function useCreateAccount() {
       
       return { id: docRef.id, ...data };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      toast.success('Account created');
+    onMutate: async (newAccount) => {
+      if (!user) return;
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['accounts', user.uid] });
+      
+      // Snapshot previous value
+      const previousAccounts = queryClient.getQueryData(['accounts', user.uid]);
+      
+      // Generate temp ID
+      const tempId = generateTempId();
+      
+      // Optimistically update
+      queryClient.setQueryData(['accounts', user.uid], (old: any) => {
+        const newEntry = {
+          id: tempId,
+          user_id: user.uid,
+          name: newAccount.name.trim(),
+          description: newAccount.description?.trim() || null,
+          icon: newAccount.icon || 'wallet',
+          created_at: new Date(),
+          updated_at: new Date(),
+          _pendingSync: true,
+        };
+        return old ? [newEntry, ...old] : [newEntry];
+      });
+      
+      // Queue if offline
+      if (!isOnline) {
+        await offlineQueue.addToQueue({
+          type: 'create',
+          collection: 'accounts',
+          data: {
+            user_id: user.uid,
+            name: newAccount.name.trim(),
+            description: newAccount.description?.trim() || null,
+            icon: newAccount.icon || 'wallet',
+          },
+          tempId,
+        });
+        toast.info('Account will be saved when online');
+      }
+      
+      return { previousAccounts, tempId };
     },
-    onError: (error) => {
-      toast.error('Failed to create account: ' + error.message);
+    onError: (error, _, context) => {
+      if (context?.previousAccounts && user) {
+        queryClient.setQueryData(['accounts', user.uid], context.previousAccounts);
+      }
+      if (isOnline) {
+        toast.error('Failed to create account: ' + error.message);
+      }
+    },
+    onSuccess: () => {
+      if (isOnline) {
+        toast.success('Account created');
+      }
+    },
+    onSettled: () => {
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['accounts', user.uid] });
+      }
     },
   });
 }
 
 export function useUpdateAccount() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { isOnline } = useNetworkStatus();
   
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; name: string; description?: string; icon?: string }) => {
+      // If offline, skip Firebase call
+      if (!isOnline) {
+        return { id, ...data };
+      }
+      
       const docRef = doc(db, 'accounts', id);
       await updateDoc(docRef, {
         name: data.name.trim(),
@@ -133,22 +207,90 @@ export function useUpdateAccount() {
         updated_at: serverTimestamp(),
       });
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['account', variables.id] });
-      toast.success('Account updated');
+    onMutate: async (updatedAccount) => {
+      if (!user) return;
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['accounts', user.uid] });
+      await queryClient.cancelQueries({ queryKey: ['account', updatedAccount.id] });
+      
+      // Snapshot previous values
+      const previousAccounts = queryClient.getQueryData(['accounts', user.uid]);
+      const previousAccount = queryClient.getQueryData(['account', updatedAccount.id]);
+      
+      // Optimistically update accounts list
+      queryClient.setQueryData(['accounts', user.uid], (old: any) => {
+        if (!old) return old;
+        return old.map((account: Account) =>
+          account.id === updatedAccount.id
+            ? { ...account, ...updatedAccount, updated_at: new Date(), _pendingSync: true }
+            : account
+        );
+      });
+      
+      // Optimistically update single account
+      queryClient.setQueryData(['account', updatedAccount.id], (old: any) => {
+        if (!old) return old;
+        return { ...old, ...updatedAccount, updated_at: new Date(), _pendingSync: true };
+      });
+      
+      // Queue if offline
+      if (!isOnline) {
+        await offlineQueue.addToQueue({
+          type: 'update',
+          collection: 'accounts',
+          data: {
+            id: updatedAccount.id,
+            name: updatedAccount.name.trim(),
+            description: updatedAccount.description?.trim() || null,
+            icon: updatedAccount.icon || 'wallet',
+            updated_at: new Date(),
+          },
+        });
+        toast.info('Changes will sync when online');
+      }
+      
+      return { previousAccounts, previousAccount };
     },
-    onError: (error) => {
-      toast.error('Failed to update account: ' + error.message);
+    onError: (error, variables, context) => {
+      if (user && context) {
+        if (context.previousAccounts) {
+          queryClient.setQueryData(['accounts', user.uid], context.previousAccounts);
+        }
+        if (context.previousAccount) {
+          queryClient.setQueryData(['account', variables.id], context.previousAccount);
+        }
+      }
+      if (isOnline) {
+        toast.error('Failed to update account: ' + error.message);
+      }
+    },
+    onSuccess: (_, variables) => {
+      if (isOnline) {
+        toast.success('Account updated');
+      }
+    },
+    onSettled: (_, __, variables) => {
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['accounts', user.uid] });
+        queryClient.invalidateQueries({ queryKey: ['account', variables.id] });
+      }
     },
   });
 }
 
 export function useDeleteAccount() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { isOnline } = useNetworkStatus();
   
   return useMutation({
     mutationFn: async (id: string) => {
+      // If offline, skip Firebase call
+      if (!isOnline) {
+        return { id };
+      }
+      
       // First, update all loans that reference this account
       const loansQuery = query(
         collection(db, 'loans'),
@@ -167,13 +309,68 @@ export function useDeleteAccount() {
       // Finally, delete the account
       await deleteDoc(doc(db, 'accounts', id));
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['loans'] });
-      toast.success('Account deleted');
+    onMutate: async (accountId) => {
+      if (!user) return;
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['accounts', user.uid] });
+      await queryClient.cancelQueries({ queryKey: ['loans', user.uid] });
+      
+      // Snapshot previous values
+      const previousAccounts = queryClient.getQueryData(['accounts', user.uid]);
+      const previousLoans = queryClient.getQueryData(['loans', user.uid]);
+      
+      // Optimistically remove account
+      queryClient.setQueryData(['accounts', user.uid], (old: any) => {
+        if (!old) return old;
+        return old.filter((account: Account) => account.id !== accountId);
+      });
+      
+      // Optimistically nullify account_id in loans
+      queryClient.setQueryData(['loans', user.uid], (old: any) => {
+        if (!old) return old;
+        return old.map((loan: any) =>
+          loan.account_id === accountId
+            ? { ...loan, account_id: null, _pendingSync: true }
+            : loan
+        );
+      });
+      
+      // Queue if offline
+      if (!isOnline) {
+        await offlineQueue.addToQueue({
+          type: 'delete',
+          collection: 'accounts',
+          data: { id: accountId },
+        });
+        toast.info('Deletion will sync when online');
+      }
+      
+      return { previousAccounts, previousLoans };
     },
-    onError: (error) => {
-      toast.error('Failed to delete account: ' + error.message);
+    onError: (error, _, context) => {
+      if (user && context) {
+        if (context.previousAccounts) {
+          queryClient.setQueryData(['accounts', user.uid], context.previousAccounts);
+        }
+        if (context.previousLoans) {
+          queryClient.setQueryData(['loans', user.uid], context.previousLoans);
+        }
+      }
+      if (isOnline) {
+        toast.error('Failed to delete account: ' + error.message);
+      }
+    },
+    onSuccess: () => {
+      if (isOnline) {
+        toast.success('Account deleted');
+      }
+    },
+    onSettled: () => {
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['accounts', user.uid] });
+        queryClient.invalidateQueries({ queryKey: ['loans', user.uid] });
+      }
     },
   });
 }

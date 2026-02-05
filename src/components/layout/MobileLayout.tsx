@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { DesktopSidebar } from './DesktopSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -27,6 +28,13 @@ export function MobileLayout({ children, showNav = true }: MobileLayoutProps) {
   if (isMobile) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
+        {/* Header with offline indicator */}
+        <header className="sticky top-0 z-40 bg-card border-b border-border px-4 py-2">
+          <div className="flex items-center justify-end">
+            <OfflineIndicator />
+          </div>
+        </header>
+
         <main className={cn("flex-1", showNav && "pb-20")}>
           {children}
         </main>
