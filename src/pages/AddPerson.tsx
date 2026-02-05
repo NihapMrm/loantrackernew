@@ -86,20 +86,20 @@ export default function AddPerson() {
 
   return (
     <MobileLayout showNav={false}>
-      <div className="px-4 pt-4 pb-4">
+      <div className="px-4 pt-4 pb-4 max-w-2xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-foreground">
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground">
             {isEdit ? 'Edit Person' : 'Add Person'}
           </h1>
         </div>
 
         <form onSubmit={handleSubmit}>
           <Card className="shadow-card">
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-4 lg:p-6 space-y-4 lg:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -108,6 +108,7 @@ export default function AddPerson() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoFocus
+                  className="lg:text-base"
                 />
                 {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
               </div>
@@ -120,6 +121,7 @@ export default function AddPerson() {
                   placeholder="Enter phone number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  className="lg:text-base"
                 />
                 {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
               </div>
@@ -132,22 +134,23 @@ export default function AddPerson() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
+                  className="lg:text-base"
                 />
                 {errors.notes && <p className="text-sm text-destructive">{errors.notes}</p>}
               </div>
             </CardContent>
           </Card>
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex gap-3 lg:gap-4">
             <Button 
               type="button" 
               variant="outline" 
-              className="flex-1"
+              className="flex-1 lg:text-base"
               onClick={() => navigate(-1)}
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={isPending}>
+            <Button type="submit" className="flex-1 lg:text-base" disabled={isPending}>
               {isPending ? 'Saving...' : isEdit ? 'Update' : 'Add Person'}
             </Button>
           </div>

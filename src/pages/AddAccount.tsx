@@ -95,22 +95,22 @@ export default function AddAccount() {
 
   return (
     <MobileLayout showNav={false}>
-      <div className="px-4 pt-4 pb-4">
+      <div className="px-4 pt-4 pb-4 max-w-2xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-foreground">
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground">
             {isEdit ? 'Edit Account' : 'Add Account'}
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
           {/* Icon Selection */}
           <div className="space-y-2">
             <Label>Icon</Label>
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-6 gap-2 lg:gap-3">
               {ACCOUNT_ICONS.map((iconOption) => {
                 const IconComponent = iconMap[iconOption.value] || Wallet;
                 return (
@@ -119,14 +119,14 @@ export default function AddAccount() {
                     type="button"
                     onClick={() => setIcon(iconOption.value)}
                     className={cn(
-                      'p-3 rounded-xl border-2 transition-all flex items-center justify-center',
+                      'p-3 lg:p-4 rounded-xl border-2 transition-all flex items-center justify-center',
                       icon === iconOption.value
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card hover:border-primary/50'
                     )}
                   >
                     <IconComponent className={cn(
-                      'w-5 h-5',
+                      'w-5 h-5 lg:w-6 lg:h-6',
                       icon === iconOption.value ? 'text-primary' : 'text-muted-foreground'
                     )} />
                   </button>
@@ -136,7 +136,7 @@ export default function AddAccount() {
           </div>
 
           <Card className="shadow-card">
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-4 lg:p-6 space-y-4 lg:space-y-6">
               {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
@@ -146,6 +146,7 @@ export default function AddAccount() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoFocus
+                  className="lg:text-base"
                 />
                 {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
               </div>
@@ -159,24 +160,25 @@ export default function AddAccount() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
+                  className="lg:text-base"
                 />
                 {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 lg:gap-4">
             <Button 
               type="button" 
               variant="outline" 
-              className="flex-1"
+              className="flex-1 lg:text-base"
               onClick={() => navigate(-1)}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              className="flex-1" 
+              className="flex-1 lg:text-base" 
               disabled={isPending}
             >
               {isPending ? 'Saving...' : isEdit ? 'Update' : 'Create Account'}
