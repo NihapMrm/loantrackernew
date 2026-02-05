@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "508017051736-1mi171chg064u81kegpq3rlmenj3p3aq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.loantracker.app",
+            "certificate_hash": "199087345e80ec54dca690ce2dbadf5956ffad81"
+          }
+        },
+        {
           "client_id": "508017051736-qpvdc2778cbak57qvshachq2cdoqn9l2.apps.googleusercontent.com",
           "client_type": 3
         }

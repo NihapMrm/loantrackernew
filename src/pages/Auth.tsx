@@ -315,22 +315,6 @@ export default function Auth() {
           </Tabs>
           )}
         </Card>
-
-        {/* Features preview */}
-        <div className="mt-12 grid grid-cols-2 gap-4 max-w-sm w-full animate-fade-in">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <div className="w-10 h-10 rounded-lg bg-loan-given-light flex items-center justify-center">
-              <ArrowRightLeft className="w-5 h-5 text-loan-given" />
-            </div>
-            <span>Track given & taken loans</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-              <Shield className="w-5 h-5 text-foreground" />
-            </div>
-            <span>Private & secure</span>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -7,9 +7,11 @@ import {
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithCredential
 } from 'firebase/auth';
 import { auth } from '@/integrations/firebase/client';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
   user: User | null;
@@ -63,8 +65,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      // Check if running on native platform
+      if (Capacitor.isNativePlatform()) {
+        // Use native Google Sign-In
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        
+        // Create credential from the result
+        const credential = GoogleAuthProvider.credential(result.credential?.idToken);
+        
+        // Sign in to Firebase with the credential
+        await signInWithCredential(auth, credential);
+      } else {
+        // Use web popup for browser
+        const { signInWithPopup } = await import('firebase/auth');
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      }
       return { error: null };
     } catch (error) {
       return { error: error as Error };
