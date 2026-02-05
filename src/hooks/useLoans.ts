@@ -176,15 +176,46 @@ export function useUpdatePerson() {
 
 export function useDeletePerson() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      // First, find and delete all loans related to this person
+      const loansQuery = query(
+        collection(db, 'loans'),
+        where('user_id', '==', user.uid),
+        where('person_id', '==', id)
+      );
+      
+      const loansSnapshot = await getDocs(loansQuery);
+      
+      // Delete all related loans and their payments
+      await Promise.all(
+        loansSnapshot.docs.map(async (loanDoc) => {
+          // Delete payments for this loan
+          const paymentsQuery = query(
+            collection(db, 'payments'),
+            where('loan_id', '==', loanDoc.id)
+          );
+          const paymentsSnapshot = await getDocs(paymentsQuery);
+          await Promise.all(
+            paymentsSnapshot.docs.map(paymentDoc => deleteDoc(paymentDoc.ref))
+          );
+          
+          // Delete the loan
+          await deleteDoc(loanDoc.ref);
+        })
+      );
+      
+      // Finally, delete the person
       await deleteDoc(doc(db, 'people', id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
-      toast.success('Person deleted');
+      toast.success('Person and related loans deleted');
     },
     onError: (error) => {
       toast.error('Failed to delete person: ' + error.message);
@@ -202,77 +233,112 @@ export function useLoans() {
     queryFn: async () => {
       if (!user) return [];
       
-      const q = query(
-        collection(db, 'loans'),
-        where('user_id', '==', user.uid),
-        orderBy('created_at', 'desc')
-      );
-      
-      const snapshot = await getDocs(q);
-      
-      // Extract unique person IDs
-      const personIds = [...new Set(
-        snapshot.docs
-          .map(doc => doc.data().person_id)
-          .filter(Boolean)
-      )] as string[];
-      
-      // Batch fetch all people
-      const peopleMap = new Map<string, Person>();
-      if (personIds.length > 0) {
-        const peoplePromises = personIds.map(id => getDoc(doc(db, 'people', id)));
-        const peopleSnaps = await Promise.all(peoplePromises);
-        peopleSnaps.forEach(snap => {
-          if (snap.exists()) {
-            peopleMap.set(snap.id, {
-              id: snap.id,
-              ...snap.data(),
-              created_at: timestampToDate(snap.data().created_at),
-              updated_at: timestampToDate(snap.data().updated_at),
-            } as Person);
-          }
-        });
-      }
-      
-      // Batch fetch all payments
-      const loanIds = snapshot.docs.map(doc => doc.id);
-      const paymentsMap = new Map<string, Payment[]>();
-      if (loanIds.length > 0) {
-        const paymentsQuery = query(
-          collection(db, 'payments'),
-          where('loan_id', 'in', loanIds.slice(0, 10)) // Firestore 'in' query limit is 10
+      try {
+        const q = query(
+          collection(db, 'loans'),
+          where('user_id', '==', user.uid),
+          orderBy('created_at', 'desc')
         );
-        const paymentsSnapshot = await getDocs(paymentsQuery);
-        paymentsSnapshot.docs.forEach(paymentDoc => {
-          const payment = {
-            id: paymentDoc.id,
-            ...paymentDoc.data(),
-            payment_date: timestampToDate(paymentDoc.data().payment_date),
-            created_at: timestampToDate(paymentDoc.data().created_at),
-          } as Payment;
-          const loanId = paymentDoc.data().loan_id;
-          if (!paymentsMap.has(loanId)) {
-            paymentsMap.set(loanId, []);
+        
+        const snapshot = await getDocs(q);
+        
+        // Extract unique person IDs
+        const personIds = [...new Set(
+          snapshot.docs
+            .map(doc => doc.data().person_id)
+            .filter(Boolean)
+        )] as string[];
+      
+        // Batch fetch all people with error handling for each
+        const peopleMap = new Map<string, Person>();
+        if (personIds.length > 0) {
+          const peoplePromises = personIds.map(async (id) => {
+            try {
+              const personDoc = await getDoc(doc(db, 'people', id));
+              if (personDoc.exists()) {
+                return {
+                  id: personDoc.id,
+                  data: {
+                    id: personDoc.id,
+                    ...personDoc.data(),
+                    created_at: timestampToDate(personDoc.data().created_at),
+                    updated_at: timestampToDate(personDoc.data().updated_at),
+                  } as Person
+                };
+              }
+            } catch (error) {
+            // Silently skip person documents that can't be fetched
           }
-          paymentsMap.get(loanId)!.push(payment);
+          return null;
+        });
+        
+        const peopleResults = await Promise.all(peoplePromises);
+        peopleResults.forEach(result => {
+          if (result && result.data) {
+            peopleMap.set(result.id, result.data);
+          }
         });
       }
       
-      // Map loans with pre-fetched data
-      const loans = snapshot.docs.map(docSnap => {
-        const loanData = docSnap.data();
-        return {
-          id: docSnap.id,
-          ...loanData,
-          created_at: timestampToDate(loanData.created_at),
-          updated_at: timestampToDate(loanData.updated_at),
-          due_date: loanData.due_date ? timestampToDate(loanData.due_date) : null,
-          person: loanData.person_id ? peopleMap.get(loanData.person_id) : undefined,
-          payments: paymentsMap.get(docSnap.id) || [],
-        } as Loan;
-      });
-      
-      return loans;
+      // Batch fetch all payments (handling Firestore 'in' query limit of 10)
+      const loanIds = snapshot.docs.map(doc => doc.id);
+        const paymentsMap = new Map<string, Payment[]>();
+        if (loanIds.length > 0) {
+          // Split loanIds into chunks of 10 (Firestore 'in' query limit)
+          const chunks = [];
+          for (let i = 0; i < loanIds.length; i += 10) {
+            chunks.push(loanIds.slice(i, i + 10));
+          }
+          
+          // Fetch payments for each chunk
+          const paymentsPromises = chunks.map(chunk =>
+            getDocs(query(
+              collection(db, 'payments'),
+              where('loan_id', 'in', chunk)
+            ))
+          );
+          
+          const paymentsSnapshots = await Promise.all(paymentsPromises);
+          
+          // Combine all payment documents
+          let totalPayments = 0;
+          paymentsSnapshots.forEach(paymentsSnapshot => {
+            totalPayments += paymentsSnapshot.docs.length;
+            paymentsSnapshot.docs.forEach(paymentDoc => {
+              const payment = {
+                id: paymentDoc.id,
+                ...paymentDoc.data(),
+                payment_date: timestampToDate(paymentDoc.data().payment_date),
+                created_at: timestampToDate(paymentDoc.data().created_at),
+              } as Payment;
+              const loanId = paymentDoc.data().loan_id;
+              if (!paymentsMap.has(loanId)) {
+                paymentsMap.set(loanId, []);
+              }
+              paymentsMap.get(loanId)!.push(payment);
+            });
+          });
+        }
+        
+        // Map loans with pre-fetched data
+        const loans = snapshot.docs.map(docSnap => {
+          const loanData = docSnap.data();
+          const loan = {
+            id: docSnap.id,
+            ...loanData,
+            created_at: timestampToDate(loanData.created_at),
+            updated_at: timestampToDate(loanData.updated_at),
+            due_date: loanData.due_date ? timestampToDate(loanData.due_date) : null,
+            person: loanData.person_id ? peopleMap.get(loanData.person_id) : undefined,
+            payments: paymentsMap.get(docSnap.id) || [],
+          } as Loan;
+          return loan;
+        });
+        
+        return loans;
+      } catch (error) {
+        throw error;
+      }
     },
     enabled: !!user,
   });

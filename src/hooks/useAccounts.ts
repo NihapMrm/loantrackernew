@@ -149,6 +149,22 @@ export function useDeleteAccount() {
   
   return useMutation({
     mutationFn: async (id: string) => {
+      // First, update all loans that reference this account
+      const loansQuery = query(
+        collection(db, 'loans'),
+        where('account_id', '==', id)
+      );
+      
+      const loansSnapshot = await getDocs(loansQuery);
+      
+      // Set account_id to null for all loans using this account
+      await Promise.all(
+        loansSnapshot.docs.map(loanDoc => 
+          updateDoc(loanDoc.ref, { account_id: null })
+        )
+      );
+      
+      // Finally, delete the account
       await deleteDoc(doc(db, 'accounts', id));
     },
     onSuccess: () => {
