@@ -1,6 +1,7 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, generateId, nowISO } from '@/lib/db';
 import { toast } from 'sonner';
+import type { Account } from '@/hooks/useAccounts';
 
 export type LoanType = 'GIVEN' | 'TAKEN';
 export type LoanStatus = 'OPEN' | 'PARTIAL' | 'PAID';
@@ -26,6 +27,7 @@ export interface Loan {
   created_at: Date;
   updated_at: Date;
   person?: Person;
+  account?: Account;
   payments?: Payment[];
 }
 
@@ -132,6 +134,7 @@ export function useDeletePerson() {
 
 async function enrichLoan(loan: any): Promise<Loan> {
   const person = loan.person_id ? await db.people.get(loan.person_id) : undefined;
+  const accountRow = loan.account_id ? await db.accounts.get(loan.account_id) : undefined;
   const payments = await db.payments.where('loan_id').equals(loan.id).toArray();
   return {
     ...loan,
@@ -139,6 +142,7 @@ async function enrichLoan(loan: any): Promise<Loan> {
     updated_at: toDate(loan.updated_at),
     due_date: loan.due_date ? new Date(loan.due_date) : null,
     person: person ? { ...person, created_at: toDate(person.created_at), updated_at: toDate(person.updated_at) } : undefined,
+    account: accountRow ? { ...accountRow, created_at: toDate(accountRow.created_at), updated_at: toDate(accountRow.updated_at) } as Account : undefined,
     payments: payments.map(p => ({
       ...p,
       payment_date: toDate(p.payment_date),

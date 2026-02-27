@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit, Trash2, Plus, Calendar, FileText, User, X } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Plus, Calendar, FileText, User, Wallet, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function LoanDetail() {
@@ -146,6 +146,17 @@ export default function LoanDetail() {
           {/* Details */}
           <Card className="shadow-card">
             <CardContent className="p-4 space-y-3 lg:p-6">
+              {loan.account && (
+                <div className="flex items-center gap-3">
+                  <Wallet className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Account</p>
+                    <Link to={`/account/${loan.account_id}`} className="font-medium hover:underline">
+                      {loan.account.name}
+                    </Link>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <div>
