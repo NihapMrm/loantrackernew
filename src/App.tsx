@@ -2,7 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
 
 // Pages
 import Index from "./pages/Index";
@@ -28,12 +30,37 @@ const queryClient = new QueryClient({
   },
 });
 
+// Handle Android hardware back button
+function BackButtonHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const listener = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      if (location.pathname === '/' || !canGoBack) {
+        // On home page or can't go back -> exit app
+        CapacitorApp.exitApp();
+      } else {
+        // Navigate back in browser history
+        navigate(-1);
+      }
+    });
+
+    return () => {
+      listener.then(l => l.remove());
+    };
+  }, [navigate, location]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <HashRouter>
+        <BackButtonHandler />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/people" element={<People />} />
