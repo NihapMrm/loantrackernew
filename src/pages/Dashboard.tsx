@@ -25,9 +25,9 @@ export default function Dashboard() {
   const createPayment = useCreatePayment();
   const totals = loans ? calculateTotals(loans) : { toReceive: 0, toPay: 0 };
   
-  // Separate loans by type (only active loans)
-  const loansToReceive = loans?.filter(l => l.type === 'GIVEN' && l.status !== 'PAID') || [];
-  const loansToPay = loans?.filter(l => l.type === 'TAKEN' && l.status !== 'PAID') || [];
+  // Separate loans by type (only active loans with a non-zero amount)
+  const loansToReceive = loans?.filter(l => l.type === 'GIVEN' && l.status !== 'PAID' && Number(l.amount) > 0) || [];
+  const loansToPay = loans?.filter(l => l.type === 'TAKEN' && l.status !== 'PAID' && Number(l.amount) > 0) || [];
 
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [paymentType, setPaymentType] = useState<'full' | 'partial' | null>(null);
