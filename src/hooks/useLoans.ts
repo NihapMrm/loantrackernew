@@ -330,6 +330,54 @@ export function useDeletePayment() {
   });
 }
 
+/** Delete all payments for a loan → resets status to OPEN */
+export function useResetLoanPayments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (loanId: string) => {
+      const now = nowISO();
+      await db.payments.where('loan_id').equals(loanId).delete();
+      await db.loans.update(loanId, { status: 'OPEN', updated_at: now });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loan'] });
+      toast.success('Loan marked as unpaid');
+    },
+    onError: (e: any) => toast.error('Failed to update loan: ' + e.message),
+  });
+}
+
+/** Delete the most recent payment for a loan → may revert PAID → PARTIAL/OPEN */
+export function useDeleteLastPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (loanId: string) => {
+      const now = nowISO();
+      const payments = await db.payments.where('loan_id').equals(loanId).sortBy('created_at');
+      if (!payments.length) return;
+      const last = payments[payments.length - 1];
+      await db.payments.delete(last.id);
+
+      const remaining = await db.payments.where('loan_id').equals(loanId).toArray();
+      const loan = await db.loans.get(loanId);
+      if (loan) {
+        const totalPaid = remaining.reduce((s, p) => s + Number(p.amount), 0);
+        let status: LoanStatus = 'OPEN';
+        if (totalPaid >= Number(loan.amount)) status = 'PAID';
+        else if (totalPaid > 0) status = 'PARTIAL';
+        await db.loans.update(loanId, { status, updated_at: now });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loan'] });
+      toast.success('Last payment removed');
+    },
+    onError: (e: any) => toast.error('Failed to update loan: ' + e.message),
+  });
+}
+
 // ===== COMPUTED VALUES =====
 
 export function calculateBalance(loan: Loan): number {

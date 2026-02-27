@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { usePerson, useLoansByPerson, useDeletePerson, calculateBalance, Loan } from '@/hooks/useLoans';
+import { usePerson, useLoansByPerson, useDeletePerson, calculateBalance, Loan, useCreatePayment, useResetLoanPayments, useDeleteLastPayment } from '@/hooks/useLoans';
 import { AmountDisplay, StatusBadge, LoanTypeBadge } from '@/components/ui/amount-display';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Edit, Trash2, Plus, User, Phone, FileText } from 'lucide-react';
 import { format } from 'date-fns';
+import confetti from 'canvas-confetti';
+import { SwipeableLoanCard, useSwipeOpen } from '@/components/SwipeableLoanCard';
 
 export default function PersonDetail() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +28,9 @@ export default function PersonDetail() {
   const { data: person, isLoading: loadingPerson } = usePerson(id);
   const { data: loans, isLoading: loadingLoans } = useLoansByPerson(id);
   const deletePerson = useDeletePerson();
+  const createPayment = useCreatePayment();
+  const resetLoan = useResetLoanPayments();
+  const deleteLastPayment = useDeleteLastPayment();
 
   const isLoading = loadingPerson || loadingLoans;
 
@@ -42,6 +47,41 @@ export default function PersonDetail() {
     if (!id) return;
     await deletePerson.mutateAsync(id);
     navigate('/people');
+  };
+
+  const handleQuickAddPayment = (loan: Loan) => {
+    navigate(`/add-payment/${loan.id}`);
+  };
+
+  const handleQuickMarkPaid = async (loan: Loan) => {
+    if (!loan.id) return;
+    const totalPaid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    const remainingAmount = loan.amount - totalPaid;
+    if (remainingAmount <= 0) return;
+
+    await createPayment.mutateAsync({
+      loan_id: loan.id,
+      amount: remainingAmount,
+      payment_date: new Date().toISOString().split('T')[0],
+      notes: 'Marked as paid',
+    });
+
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#34d399', '#6ee7b7'],
+    });
+  };
+
+  const handleQuickMarkUnpaid = async (loan: Loan) => {
+    if (!loan.id) return;
+    await resetLoan.mutateAsync(loan.id);
+  };
+
+  const handleQuickMarkPartial = async (loan: Loan) => {
+    if (!loan.id) return;
+    await deleteLastPayment.mutateAsync(loan.id);
   };
 
   if (isLoading) {
@@ -170,7 +210,16 @@ export default function PersonDetail() {
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
               {loans?.map((loan) => (
-                <LoanCard key={loan.id} loan={loan} />
+                <SwipeableLoanCard
+                  key={loan.id}
+                  onAddPayment={() => handleQuickAddPayment(loan)}
+                  onMarkPaid={() => handleQuickMarkPaid(loan)}
+                  onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
+                  onMarkPartial={() => handleQuickMarkPartial(loan)}
+                  status={loan.status}
+                >
+                  <LoanCard loan={loan} />
+                </SwipeableLoanCard>
               ))}
             </div>
           )}
@@ -182,11 +231,18 @@ export default function PersonDetail() {
 
 function LoanCard({ loan }: { loan: Loan }) {
   const balance = calculateBalance(loan);
-  
+  const isSwipeOpen = useSwipeOpen();
+  const totalPaid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
+  const cappedProgress = Math.min(Math.max((totalPaid / loan.amount) * 100, 0), 100);
+  const progressColor = loan.type === 'GIVEN' ? 'bg-emerald-500' : 'bg-amber-500';
+  const trackColor   = loan.type === 'GIVEN' ? 'bg-emerald-100 dark:bg-emerald-950' : 'bg-amber-100 dark:bg-amber-950';
+  const showProgress = loan.status !== 'PAID' && cappedProgress > 0;
+  const showFullBar  = loan.status === 'PAID';
+
   return (
     <Link to={`/loan/${loan.id}`}>
-      <Card className="shadow-card hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className={`shadow-card hover:shadow-md transition-all overflow-hidden ${isSwipeOpen ? 'rounded-r-none' : ''}`}>
+        <CardContent className="p-4 pb-3">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -207,6 +263,16 @@ function LoanCard({ loan }: { loan: Loan }) {
               )}
             </div>
           </div>
+
+          {/* Progress bar */}
+          {(showProgress || showFullBar) && (
+            <div className={`mt-3 rounded-full h-1.5 overflow-hidden ${showFullBar ? 'bg-emerald-100 dark:bg-emerald-950' : trackColor}`}>
+              <div
+                className={`h-full rounded-full transition-all duration-500 ease-out ${showFullBar ? 'w-full bg-emerald-500' : progressColor}`}
+                style={showProgress ? { width: `${cappedProgress}%` } : undefined}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

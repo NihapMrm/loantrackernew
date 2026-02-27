@@ -436,7 +436,7 @@ function SecuritySection() {
               <div>
                 <p className="font-medium text-foreground">4-Digit PIN</p>
                 <p className="text-sm text-muted-foreground">
-                  {hasPIN ? 'PIN is set - App will lock when closed' : 'Set a PIN to secure your app'}
+                  {hasPIN ? 'PIN is set' : 'Set a PIN to secure your app'}
                 </p>
               </div>
             </div>
