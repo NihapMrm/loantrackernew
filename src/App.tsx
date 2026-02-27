@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
+import { SecurityProvider, useSecurity } from "@/lib/security";
+import { LockScreen } from "@/components/LockScreen";
 
 // Pages
 import Index from "./pages/Index";
@@ -54,32 +56,47 @@ function BackButtonHandler() {
   return null;
 }
 
+// App content that checks security
+function AppContent() {
+  const { isUnlocked } = useSecurity();
+
+  if (!isUnlocked) {
+    return <LockScreen />;
+  }
+
+  return (
+    <HashRouter>
+      <BackButtonHandler />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/people" element={<People />} />
+        <Route path="/person/:id" element={<PersonDetail />} />
+        <Route path="/add-person" element={<AddPerson />} />
+        <Route path="/edit-person/:id" element={<AddPerson />} />
+        <Route path="/add-loan" element={<AddLoan />} />
+        <Route path="/edit-loan/:id" element={<AddLoan />} />
+        <Route path="/loan/:id" element={<LoanDetail />} />
+        <Route path="/add-payment/:loanId" element={<AddPayment />} />
+        <Route path="/accounts" element={<Accounts />} />
+        <Route path="/account/:id" element={<AccountDetail />} />
+        <Route path="/add-account" element={<AddAccount />} />
+        <Route path="/edit-account/:id" element={<AddAccount />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </HashRouter>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <HashRouter>
-        <BackButtonHandler />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/people" element={<People />} />
-          <Route path="/person/:id" element={<PersonDetail />} />
-          <Route path="/add-person" element={<AddPerson />} />
-          <Route path="/edit-person/:id" element={<AddPerson />} />
-          <Route path="/add-loan" element={<AddLoan />} />
-          <Route path="/edit-loan/:id" element={<AddLoan />} />
-          <Route path="/loan/:id" element={<LoanDetail />} />
-          <Route path="/add-payment/:loanId" element={<AddPayment />} />
-          <Route path="/accounts" element={<Accounts />} />
-          <Route path="/account/:id" element={<AccountDetail />} />
-          <Route path="/add-account" element={<AddAccount />} />
-          <Route path="/edit-account/:id" element={<AddAccount />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </HashRouter>
-    </TooltipProvider>
+    <SecurityProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AppContent />
+      </TooltipProvider>
+    </SecurityProvider>
   </QueryClientProvider>
 );
 

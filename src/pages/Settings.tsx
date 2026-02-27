@@ -3,6 +3,9 @@ import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
+import { useSecurity } from "@/lib/security";
+import { Switch } from "@/components/ui/switch";
+import { Capacitor } from "@capacitor/core";
 import {
   Upload,
   Trash2,
@@ -13,6 +16,8 @@ import {
   Shield,
   Database,
   Download,
+  Lock,
+  Fingerprint,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -257,6 +262,9 @@ export default function Settings() {
           </Card>
         </div>
 
+        {/* Security Section */}
+        {Capacitor.isNativePlatform() && <SecuritySection />}
+
         {/* Danger Zone */}
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
@@ -330,5 +338,273 @@ export default function Settings() {
         </div>
       </div>
     </MobileLayout>
+  );
+}
+
+// Security section for PIN and biometric auth
+function SecuritySection() {
+  const { hasPIN, biometricEnabled, biometricType, setPIN, removePIN, enableBiometric, disableBiometric } = useSecurity();
+  const [loading, setLoading] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinError, setPinError] = useState('');
+
+  const handlePinSubmit = async () => {
+    setPinError('');
+    
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      setPinError('PIN must be exactly 4 digits');
+      return;
+    }
+    
+    if (pin !== confirmPin) {
+      setPinError('PINs do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await setPIN(pin);
+      toast.success('PIN set successfully');
+      setShowPinDialog(false);
+      setPin('');
+      setConfirmPin('');
+    } catch (err: any) {
+      setPinError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemovePIN = async () => {
+    setLoading(true);
+    try {
+      await removePIN();
+      toast.success('PIN removed. Security disabled.');
+    } catch (err: any) {
+      toast.error('Failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBiometricToggle = async () => {
+    setLoading(true);
+    try {
+      if (biometricEnabled) {
+        await disableBiometric();
+        toast.success('Biometric authentication disabled');
+      } else {
+        await enableBiometric();
+        toast.success('Biometric authentication enabled');
+      }
+    } catch (err: any) {
+      toast.error('Failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePinInput = (value: string, field: 'pin' | 'confirm') => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 4);
+    if (field === 'pin') {
+      setPin(cleaned);
+    } else {
+      setConfirmPin(cleaned);
+    }
+    setPinError('');
+  };
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+        Security
+      </h2>
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Lock className="w-5 h-5" />
+            App Security
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* PIN Section */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <Lock className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">4-Digit PIN</p>
+                <p className="text-sm text-muted-foreground">
+                  {hasPIN ? 'PIN is set - App will lock when closed' : 'Set a PIN to secure your app'}
+                </p>
+              </div>
+            </div>
+            {!hasPIN ? (
+              <AlertDialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm">Set PIN</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Set 4-Digit PIN</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Choose a 4-digit PIN to secure your app. You'll need this PIN every time you open the app.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Enter PIN</label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={pin}
+                        onChange={(e) => handlePinInput(e.target.value, 'pin')}
+                        className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
+                        placeholder="••••"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Confirm PIN</label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={confirmPin}
+                        onChange={(e) => handlePinInput(e.target.value, 'confirm')}
+                        className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
+                        placeholder="••••"
+                      />
+                    </div>
+                    {pinError && (
+                      <p className="text-sm text-red-600">{pinError}</p>
+                    )}
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handlePinSubmit} disabled={loading}>
+                      {loading ? 'Setting...' : 'Set PIN'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <div className="flex gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline">Change</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Change PIN</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Enter a new 4-digit PIN
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">New PIN</label>
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={4}
+                          value={pin}
+                          onChange={(e) => handlePinInput(e.target.value, 'pin')}
+                          className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
+                          placeholder="••••"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Confirm New PIN</label>
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={4}
+                          value={confirmPin}
+                          onChange={(e) => handlePinInput(e.target.value, 'confirm')}
+                          className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
+                          placeholder="••••"
+                        />
+                      </div>
+                      {pinError && (
+                        <p className="text-sm text-red-600">{pinError}</p>
+                      )}
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handlePinSubmit} disabled={loading}>
+                        {loading ? 'Changing...' : 'Change PIN'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive">Remove</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove PIN?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will disable app security. Anyone will be able to access your data.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleRemovePIN}
+                        disabled={loading}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Remove PIN
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
+          </div>
+
+          {/* Biometric Toggle (only if PIN is set) */}
+          {hasPIN && biometricType && (
+            <>
+              <div className="border-t pt-4" />
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <Fingerprint className="w-5 h-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium text-foreground">{biometricType} Unlock</p>
+                    <p className="text-sm text-muted-foreground">
+                      Use {biometricType.toLowerCase()} instead of PIN
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={biometricEnabled}
+                  onCheckedChange={handleBiometricToggle}
+                  disabled={loading}
+                />
+              </div>
+              {biometricEnabled && (
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3">
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    You can use {biometricType.toLowerCase()} or PIN to unlock. If {biometricType.toLowerCase()} fails, you can fallback to PIN.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {!hasPIN && (
+            <div className="rounded-lg bg-muted p-3">
+              <p className="text-xs text-muted-foreground">
+                Set a PIN first to enable biometric authentication
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
