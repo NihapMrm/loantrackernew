@@ -7,6 +7,8 @@ import { useEffect } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { SecurityProvider, useSecurity } from "@/lib/security";
 import { LockScreen } from "@/components/LockScreen";
+import { AnimatePresence } from "framer-motion";
+import { PageTransition } from "@/components/PageTransition";
 
 // Pages
 import Index from "./pages/Index";
@@ -67,24 +69,35 @@ function AppContent() {
   return (
     <HashRouter>
       <BackButtonHandler />
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/people" element={<People />} />
-        <Route path="/person/:id" element={<PersonDetail />} />
-        <Route path="/add-person" element={<AddPerson />} />
-        <Route path="/edit-person/:id" element={<AddPerson />} />
-        <Route path="/add-loan" element={<AddLoan />} />
-        <Route path="/edit-loan/:id" element={<AddLoan />} />
-        <Route path="/loan/:id" element={<LoanDetail />} />
-        <Route path="/add-payment/:loanId" element={<AddPayment />} />
-        <Route path="/accounts" element={<Accounts />} />
-        <Route path="/account/:id" element={<AccountDetail />} />
-        <Route path="/add-account" element={<AddAccount />} />
-        <Route path="/edit-account/:id" element={<AddAccount />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <AnimatedRoutes />
     </HashRouter>
+  );
+}
+
+// Animated routes component
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Index /></PageTransition>} />
+        <Route path="/people" element={<PageTransition><People /></PageTransition>} />
+        <Route path="/person/:id" element={<PageTransition><PersonDetail /></PageTransition>} />
+        <Route path="/add-person" element={<PageTransition><AddPerson /></PageTransition>} />
+        <Route path="/edit-person/:id" element={<PageTransition><AddPerson /></PageTransition>} />
+        <Route path="/add-loan" element={<PageTransition><AddLoan /></PageTransition>} />
+        <Route path="/edit-loan/:id" element={<PageTransition><AddLoan /></PageTransition>} />
+        <Route path="/loan/:id" element={<PageTransition><LoanDetail /></PageTransition>} />
+        <Route path="/add-payment/:loanId" element={<PageTransition><AddPayment /></PageTransition>} />
+        <Route path="/accounts" element={<PageTransition><Accounts /></PageTransition>} />
+        <Route path="/account/:id" element={<PageTransition><AccountDetail /></PageTransition>} />
+        <Route path="/add-account" element={<PageTransition><AddAccount /></PageTransition>} />
+        <Route path="/edit-account/:id" element={<PageTransition><AddAccount /></PageTransition>} />
+        <Route path="/settings" element={<PageTransition><Settings /></PageTransition>} />
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 

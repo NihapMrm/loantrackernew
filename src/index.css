@@ -154,6 +154,11 @@
   button, a, input, select, textarea {
     @apply touch-manipulation;
   }
+
+  /* Optimize page transitions */
+  #root {
+    overflow-x: hidden;
+  }
 }
 
 @layer components {
