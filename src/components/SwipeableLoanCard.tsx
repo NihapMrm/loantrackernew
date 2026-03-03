@@ -1,7 +1,10 @@
-import { useState, useRef, createContext, useContext } from 'react';
+import { useState, useRef, createContext, useContext, useEffect, useCallback } from 'react';
 import { useSwipeable } from 'react-swipeable';
-import { Plus, Check, Undo2, RotateCcw } from 'lucide-react';
+import { Plus, Check, Undo2, RotateCcw, ChevronsLeft, Pin, PinOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { getSettings } from '@/hooks/useSettings';
 
 // Context so children can know if the swipe panel is open
 const SwipeOpenContext = createContext(false);
@@ -14,9 +17,20 @@ interface SwipeableLoanCardProps {
   onMarkUnpaid: () => void;
   onMarkPartial: () => void;
   status: 'OPEN' | 'PARTIAL' | 'PAID';
+  peekDelay?: number;
+  isPinned?: boolean;
+  onTogglePin?: () => void;
 }
 
-const ACTION_WIDTH = 140; // total width of revealed action area
+const ACTION_WIDTH = 210; // 3 buttons × 70px
+
+async function haptic(style: ImpactStyle = ImpactStyle.Light) {
+  try {
+    if (Capacitor.isNativePlatform() && getSettings().hapticFeedback) {
+      await Haptics.impact({ style });
+    }
+  } catch { /* ignore */ }
+}
 
 export function SwipeableLoanCard({
   children,
@@ -25,17 +39,43 @@ export function SwipeableLoanCard({
   onMarkUnpaid,
   onMarkPartial,
   status,
+  peekDelay = 0,
+  isPinned = false,
+  onTogglePin,
 }: SwipeableLoanCardProps) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [hasSwiped, setHasSwiped] = useState(false);
   const isDragging = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const close = () => { setIsOpen(false); setSwipeOffset(0); };
   const open  = () => { setIsOpen(true);  setSwipeOffset(-ACTION_WIDTH); };
 
+  // Peek animation on mount so users discover the swipe feature
+  useEffect(() => {
+    const t1 = setTimeout(() => setSwipeOffset(-52), 600 + peekDelay);
+    const t2 = setTimeout(() => setSwipeOffset(0), 1100 + peekDelay);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [peekDelay]);
+
+  // Long-press to reveal pin
+  const handleLongPressStart = useCallback(() => {
+    if (!onTogglePin) return;
+    longPressTimer.current = setTimeout(async () => {
+      await haptic(ImpactStyle.Medium);
+      onTogglePin();
+    }, 600);
+  }, [onTogglePin]);
+
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
   const handlers = useSwipeable({
     onSwiping: (e) => {
       isDragging.current = true;
+      handleLongPressEnd();
       if (e.dir === 'Left') {
         isDragging.current = true;
         const base = isOpen ? -ACTION_WIDTH : 0;
@@ -48,10 +88,12 @@ export function SwipeableLoanCard({
         setSwipeOffset(Math.max(next, -ACTION_WIDTH));
       }
     },
-    onSwiped: (e) => {
+    onSwiped: async (e) => {
       // Delay reset so the synthetic post-swipe click doesn't immediately close
       setTimeout(() => { isDragging.current = false; }, 20);
+      setHasSwiped(true);
       if (e.dir === 'Left' && Math.abs(e.deltaX) > 50) {
+        await haptic(ImpactStyle.Light);
         open();
       } else if (e.dir === 'Right' && Math.abs(e.deltaX) > 40) {
         close();
@@ -68,31 +110,45 @@ export function SwipeableLoanCard({
   const handleAddPayment = (e: React.MouseEvent) => {
     e.stopPropagation();
     close();
+    haptic();
     onAddPayment();
   };
 
   const handleMarkPaid = (e: React.MouseEvent) => {
     e.stopPropagation();
     close();
+    haptic(ImpactStyle.Medium);
     onMarkPaid();
   };
 
   const handleMarkUnpaid = (e: React.MouseEvent) => {
     e.stopPropagation();
     close();
+    haptic();
     onMarkUnpaid();
   };
 
   const handleMarkPartial = (e: React.MouseEvent) => {
     e.stopPropagation();
     close();
+    haptic();
     onMarkPartial();
+  };
+
+  const handlePin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    close();
+    haptic(ImpactStyle.Medium);
+    onTogglePin?.();
   };
 
   return (
     <div
       className="relative rounded-xl overflow-hidden"
       {...handlers}
+      onPointerDown={handleLongPressStart}
+      onPointerUp={handleLongPressEnd}
+      onPointerLeave={handleLongPressEnd}
       onClick={(e) => {
         if (isOpen && !isDragging.current) {
           e.preventDefault();
@@ -102,12 +158,8 @@ export function SwipeableLoanCard({
       }}
     >
       {/* ── Revealed action panel ── */}
-      <div
-        className="absolute inset-y-0 right-0 flex"
-        style={{ width: status === 'PAID' ? ACTION_WIDTH : ACTION_WIDTH }}
-      >
+      <div className="absolute inset-y-0 right-0 flex" style={{ width: ACTION_WIDTH }}>
         {status === 'PAID' ? (
-          // Paid loan: show Undo Paid + Mark Unpaid
           <>
             <button
               onPointerDown={(e) => e.stopPropagation()}
@@ -123,11 +175,10 @@ export function SwipeableLoanCard({
               className="flex flex-col items-center justify-center gap-1 flex-1 bg-red-500 active:bg-red-600 text-white text-xs font-semibold select-none"
             >
               <RotateCcw className="w-5 h-5" strokeWidth={2.5} />
-              <span>Mark Unpaid</span>
+              <span>Unpaid</span>
             </button>
           </>
         ) : (
-          // Open/Partial loan: show Add Payment + Mark Paid
           <>
             <button
               onPointerDown={(e) => e.stopPropagation()}
@@ -147,6 +198,19 @@ export function SwipeableLoanCard({
             </button>
           </>
         )}
+        {/* Pin button — only when onTogglePin is provided */}
+        {onTogglePin && (
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={handlePin}
+            className="flex flex-col items-center justify-center gap-1 flex-1 bg-amber-400 active:bg-amber-500 text-white text-xs font-semibold select-none"
+          >
+            {isPinned
+              ? <><PinOff className="w-5 h-5" strokeWidth={2.5} /><span>Unpin</span></>
+              : <><Pin className="w-5 h-5" strokeWidth={2.5} /><span>Pin</span></>
+            }
+          </button>
+        )}
       </div>
 
       {/* ── Sliding card surface ── */}
@@ -159,6 +223,17 @@ export function SwipeableLoanCard({
         <SwipeOpenContext.Provider value={isOpen}>
           {children}
         </SwipeOpenContext.Provider>
+        {/* Swipe hint icon — fades away after first swipe */}
+        {!hasSwiped && !isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute right-2 top-2 pointer-events-none z-20"
+          >
+            <ChevronsLeft className="w-4 h-4 text-muted-foreground/40" />
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );

@@ -1,19 +1,57 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAccount } from '@/hooks/useAccounts';
-import { useLoans, calculateBalance, Loan } from '@/hooks/useLoans';
+import { useLoans, calculateBalance, Loan, useCreatePayment, useResetLoanPayments, useDeleteLastPayment } from '@/hooks/useLoans';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AmountDisplay, StatusBadge } from '@/components/ui/amount-display';
 import { ArrowLeft, User, Calendar } from 'lucide-react';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
+import confetti from 'canvas-confetti';
+import { SwipeableLoanCard, useSwipeOpen } from '@/components/SwipeableLoanCard';
 
 export default function AccountDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: account, isLoading: accountLoading } = useAccount(id);
   const { data: loans, isLoading: loansLoading } = useLoans();
+  const createPayment = useCreatePayment();
+  const resetLoan = useResetLoanPayments();
+  const deleteLastPayment = useDeleteLastPayment();
+
+  const handleQuickAddPayment = (loan: Loan) => {
+    navigate(`/add-payment/${loan.id}`);
+  };
+
+  const handleQuickMarkPaid = async (loan: Loan) => {
+    if (!loan.id) return;
+    const totalPaid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    const remainingAmount = loan.amount - totalPaid;
+    if (remainingAmount <= 0) return;
+    await createPayment.mutateAsync({
+      loan_id: loan.id,
+      amount: remainingAmount,
+      payment_date: new Date().toISOString().split('T')[0],
+      notes: 'Marked as paid',
+    });
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#34d399', '#6ee7b7'],
+    });
+  };
+
+  const handleQuickMarkUnpaid = async (loan: Loan) => {
+    if (!loan.id) return;
+    await resetLoan.mutateAsync(loan.id);
+  };
+
+  const handleQuickMarkPartial = async (loan: Loan) => {
+    if (!loan.id) return;
+    await deleteLastPayment.mutateAsync(loan.id);
+  };
 
   // Filter loans for this account that are GIVEN and not fully paid
   const accountLoans = useMemo(() => {
@@ -97,51 +135,64 @@ export default function AccountDetail() {
           </Card>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
-            {accountLoans.map((loan) => {
-              const balance = calculateBalance(loan);
-              return (
-                <Card 
-                  key={loan.id} 
-                  className="shadow-card cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/loan/${loan.id}`)}
-                >
-                  <CardContent className="p-4 lg:p-5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground lg:text-lg">
-                            {loan.person?.name || 'Unknown'}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <StatusBadge status={loan.status} />
-                            {loan.due_date && (
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {format(new Date(loan.due_date), 'MMM d, yyyy')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <AmountDisplay amount={balance} size="md" type="GIVEN" />
-                        {balance < loan.amount && (
-                          <p className="text-xs text-muted-foreground">
-                            of <AmountDisplay amount={loan.amount} size="sm" />
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {accountLoans.map((loan, i) => (
+              <SwipeableLoanCard
+                key={loan.id}
+                onAddPayment={() => handleQuickAddPayment(loan)}
+                onMarkPaid={() => handleQuickMarkPaid(loan)}
+                onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
+                onMarkPartial={() => handleQuickMarkPartial(loan)}
+                status={loan.status}
+                peekDelay={i * 150}
+              >
+                <AccountLoanCard loan={loan} />
+              </SwipeableLoanCard>
+            ))}
           </div>
         )}
       </div>
     </MobileLayout>
+  );
+}
+
+function AccountLoanCard({ loan }: { loan: Loan }) {
+  const balance = calculateBalance(loan);
+  const isSwipeOpen = useSwipeOpen();
+  return (
+    <Link to={`/loan/${loan.id}`}>
+      <Card className={`shadow-card hover:shadow-md transition-shadow ${isSwipeOpen ? 'rounded-r-none' : ''}`}>
+        <CardContent className="p-4 lg:p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground lg:text-lg">
+                  {loan.person?.name || 'Unknown'}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <StatusBadge status={loan.status} />
+                  {loan.due_date && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {format(new Date(loan.due_date), 'MMM d, yyyy')}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <AmountDisplay amount={balance} size="md" type="GIVEN" />
+              {balance < loan.amount && (
+                <p className="text-xs text-muted-foreground">
+                  of <AmountDisplay amount={loan.amount} size="sm" />
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

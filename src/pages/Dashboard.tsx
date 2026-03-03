@@ -7,9 +7,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SwipeableLoanCard, useSwipeOpen } from '@/components/SwipeableLoanCard';
-import { ArrowDownLeft, ArrowUpRight, Wallet } from 'lucide-react';
-import { format } from 'date-fns';
+import { ArrowDownLeft, ArrowUpRight, TrendingUp, TrendingDown, Minus, Pin } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useMemo } from 'react';
+import { usePinnedLoans } from '@/hooks/usePinnedLoans';
+import { formatDate } from '@/lib/formatting';
+import { useSettings } from '@/hooks/useSettings';
 
 export default function Dashboard() {
   const { data: loans, isLoading } = useLoans();
@@ -17,11 +20,24 @@ export default function Dashboard() {
   const resetLoan = useResetLoanPayments();
   const deleteLastPayment = useDeleteLastPayment();
   const navigate = useNavigate();
+  const { settings } = useSettings();
+  const { pinnedIds, toggle: togglePin, isPinned } = usePinnedLoans();
   const totals = loans ? calculateTotals(loans) : { toReceive: 0, toPay: 0 };
+  const net = totals.toReceive - totals.toPay;
+
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
   
   // Separate loans by type (only active loans with a non-zero amount)
   const loansToReceive = loans?.filter(l => l.type === 'GIVEN' && l.status !== 'PAID' && Number(l.amount) > 0) || [];
   const loansToPay = loans?.filter(l => l.type === 'TAKEN' && l.status !== 'PAID' && Number(l.amount) > 0) || [];
+
+  // Pinned loans (any type/status)
+  const pinnedLoans = loans?.filter(l => l.id && isPinned(l.id)) || [];
 
   const handleQuickAddPayment = (loan: Loan) => {
     navigate(`/add-payment/${loan.id}`);
@@ -65,52 +81,100 @@ export default function Dashboard() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-4 space-y-6 max-w-6xl mx-auto lg:px-8 lg:pt-8">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary rounded-xl flex items-center justify-center">
-            <Wallet className="w-5 h-5 lg:w-6 lg:h-6 text-primary-foreground" />
+      <div className="pb-4 space-y-0 max-w-6xl mx-auto">
+
+        {/* ── Header ── */}
+        <div className="px-4 pt-6 pb-2 lg:px-10 lg:pt-8">
+          {/* top label */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-5 rounded-full bg-primary" />
+              <span className="text-sm font-black tracking-tight text-foreground">LoanTracker</span>
+            </div>
+            <span className="text-[10px] font-medium text-muted-foreground">{greeting} · {formatDate(new Date().toISOString(), settings)}</span>
           </div>
-          <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-foreground">LoanTracker</h1>
-            <p className="text-sm lg:text-base text-muted-foreground">Your loan overview</p>
+
+          {/* Bento grid */}
+          <div className="grid grid-cols-5 grid-rows-2 gap-2.5 h-[168px] lg:h-[180px]">
+
+            {/* Net — tall left tile (col 1-3, row 1-2) */}
+            <div className={`col-span-3 row-span-2 rounded-2xl p-4 flex flex-col justify-between overflow-hidden relative ${
+              net > 0 ? 'bg-emerald-500' : net < 0 ? 'bg-rose-500' : 'bg-foreground'
+            }`}>
+              <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 z-10">Net Balance</p>
+              <div className="z-10">
+                {isLoading
+                  ? <Skeleton className="h-10 w-28 bg-white/20 rounded-lg mb-1" />
+                  : <p className="text-3xl lg:text-4xl font-black text-white leading-none mb-1">
+                      {net >= 0 ? '+' : ''}<AmountDisplay amount={net} size="lg" className="inline text-inherit" />
+                    </p>
+                }
+                <div className="flex items-center gap-1">
+                  {net > 0 ? <TrendingUp className="w-3 h-3 text-white/60" /> : net < 0 ? <TrendingDown className="w-3 h-3 text-white/60" /> : <Minus className="w-3 h-3 text-white/40" />}
+                  <span className="text-[11px] text-white/60 font-medium">
+                    {net > 0 ? "You're ahead" : net < 0 ? "You owe more" : "All square"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* To Receive — top right (col 4-5, row 1) */}
+            <div className="col-span-2 row-span-1 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Receive</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+              </div>
+              {isLoading
+                ? <Skeleton className="h-6 w-20" />
+                : <AmountDisplay amount={totals.toReceive} size="md" className="text-emerald-700 dark:text-emerald-400 font-black" />
+              }
+              <span className="text-[10px] text-emerald-600/60 dark:text-emerald-500/60">{loansToReceive.length} {loansToReceive.length === 1 ? 'loan' : 'loans'}</span>
+            </div>
+
+            {/* To Pay — bottom right (col 4-5, row 2) */}
+            <div className="col-span-2 row-span-1 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-rose-700 dark:text-rose-400">Pay</span>
+                <ArrowDownLeft className="w-3.5 h-3.5 text-rose-500" />
+              </div>
+              {isLoading
+                ? <Skeleton className="h-6 w-20" />
+                : <AmountDisplay amount={totals.toPay} size="md" className="text-rose-700 dark:text-rose-400 font-black" />
+              }
+              <span className="text-[10px] text-rose-600/60 dark:text-rose-500/60">{loansToPay.length} {loansToPay.length === 1 ? 'loan' : 'loans'}</span>
+            </div>
+
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <Card className="bg-loan-given-light border-0 shadow-sm lg:col-span-2">
-            <CardContent className="p-4 lg:p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-loan-given/10 rounded-lg flex items-center justify-center">
-                  <ArrowUpRight className="w-4 h-4 lg:w-5 lg:h-5 text-loan-given" />
-                </div>
-                <span className="text-xs lg:text-sm font-medium text-loan-given-foreground">To Receive</span>
-              </div>
-              {isLoading ? (
-                <Skeleton className="h-8 w-24 lg:h-10 lg:w-32" />
-              ) : (
-                <AmountDisplay amount={totals.toReceive} size="lg" className="text-loan-given lg:text-2xl" />
-              )}
-            </CardContent>
-          </Card>
+        <div className="px-4 pt-3 pb-0 space-y-4 lg:px-8">
 
-          <Card className="bg-loan-taken-light border-0 shadow-sm lg:col-span-2">
-            <CardContent className="p-4 lg:p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-loan-taken/10 rounded-lg flex items-center justify-center">
-                  <ArrowDownLeft className="w-4 h-4 lg:w-5 lg:h-5 text-loan-taken" />
-                </div>
-                <span className="text-xs lg:text-sm font-medium text-loan-taken-foreground">To Pay</span>
-              </div>
-              {isLoading ? (
-                <Skeleton className="h-8 w-24 lg:h-10 lg:w-32" />
-              ) : (
-                <AmountDisplay amount={totals.toPay} size="lg" className="text-loan-taken lg:text-2xl" />
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* ── Pinned Loans ── */}
+        {pinnedLoans.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Pin className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pinned</span>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+              {pinnedLoans.map((loan) => (
+                <SwipeableLoanCard
+                  key={loan.id}
+                  onAddPayment={() => handleQuickAddPayment(loan)}
+                  onMarkPaid={() => handleQuickMarkPaid(loan)}
+                  onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
+                  onMarkPartial={() => handleQuickMarkPartial(loan)}
+                  status={loan.status}
+                  isPinned={true}
+                  onTogglePin={() => loan.id && togglePin(loan.id)}
+                >
+                  <LoanCard loan={loan} progress={calculateProgress(loan)} />
+                </SwipeableLoanCard>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Loans Tabs */}
         <Tabs defaultValue="to-receive" className="w-full">
@@ -143,7 +207,7 @@ export default function Dashboard() {
               </Card>
             ) : (
               <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-                {loansToReceive.map((loan) => (
+                {loansToReceive.map((loan, i) => (
                   <SwipeableLoanCard
                     key={loan.id}
                     onAddPayment={() => handleQuickAddPayment(loan)}
@@ -151,6 +215,9 @@ export default function Dashboard() {
                     onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
                     onMarkPartial={() => handleQuickMarkPartial(loan)}
                     status={loan.status}
+                    peekDelay={i * 150}
+                    isPinned={loan.id ? isPinned(loan.id) : false}
+                    onTogglePin={() => loan.id && togglePin(loan.id)}
                   >
                     <LoanCard loan={loan} progress={calculateProgress(loan)} />
                   </SwipeableLoanCard>
@@ -177,7 +244,7 @@ export default function Dashboard() {
               </Card>
             ) : (
               <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-                {loansToPay.map((loan) => (
+                {loansToPay.map((loan, i) => (
                   <SwipeableLoanCard
                     key={loan.id}
                     onAddPayment={() => handleQuickAddPayment(loan)}
@@ -185,6 +252,9 @@ export default function Dashboard() {
                     onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
                     onMarkPartial={() => handleQuickMarkPartial(loan)}
                     status={loan.status}
+                    peekDelay={i * 150}
+                    isPinned={loan.id ? isPinned(loan.id) : false}
+                    onTogglePin={() => loan.id && togglePin(loan.id)}
                   >
                     <LoanCard loan={loan} progress={calculateProgress(loan)} />
                   </SwipeableLoanCard>
@@ -193,6 +263,7 @@ export default function Dashboard() {
             )}
           </TabsContent>
         </Tabs>
+        </div> {/* end inner padded div */}
       </div>
 
     </MobileLayout>
@@ -221,7 +292,7 @@ function LoanCard({ loan, progress }: { loan: Loan; progress: number }) {
               <LoanTypeBadge type={loan.type} />
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{format(new Date(loan.created_at), 'MMM d, yyyy')}</span>
+              <span>{formatDate(loan.created_at)}</span>
               <StatusBadge status={loan.status} />
             </div>
           </div>

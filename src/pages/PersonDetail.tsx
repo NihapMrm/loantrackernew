@@ -209,7 +209,7 @@ export default function PersonDetail() {
             </Card>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
-              {loans?.map((loan) => (
+              {loans?.map((loan, i) => (
                 <SwipeableLoanCard
                   key={loan.id}
                   onAddPayment={() => handleQuickAddPayment(loan)}
@@ -217,6 +217,7 @@ export default function PersonDetail() {
                   onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
                   onMarkPartial={() => handleQuickMarkPartial(loan)}
                   status={loan.status}
+                  peekDelay={i * 150}
                 >
                   <LoanCard loan={loan} />
                 </SwipeableLoanCard>

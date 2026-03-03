@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils';
 import { LoanType } from '@/hooks/useLoans';
+import { useSettings } from '@/hooks/useSettings';
+import { formatAmount } from '@/lib/formatting';
 
 interface AmountDisplayProps {
   amount: number;
@@ -16,13 +18,8 @@ export function AmountDisplay({
   showSign = false,
   className 
 }: AmountDisplayProps) {
-  const formatted = new Intl.NumberFormat('en-LK', {
-    style: 'currency',
-    currency: 'LKR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(Math.abs(amount));
-
+  const { settings } = useSettings();
+  const formatted = formatAmount(amount, settings);
   const sign = showSign ? (amount >= 0 ? '+' : '-') : '';
 
   const sizeClasses = {
