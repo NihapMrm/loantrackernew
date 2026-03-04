@@ -19,7 +19,6 @@ import {
   Lock,
   Fingerprint,
   ChevronRight,
-  Wrench,
   DollarSign,
   Hash,
   Calendar,
@@ -103,9 +102,6 @@ export default function Settings() {
         if (data.payments?.length) await db.payments.bulkAdd(data.payments.map(strip));
       });
 
-      // Fix statuses: recalculate every loan based on actual payments
-      await recalculateAllStatuses();
-
       setImportResult({
         people: data.people?.length ?? 0,
         accounts: data.accounts?.length ?? 0,
@@ -136,34 +132,6 @@ export default function Settings() {
       toast.success("All data cleared.");
     } catch (err: any) {
       toast.error("Failed to clear data: " + err.message);
-    }
-  };
-
-  // Recalculate every loan's status from actual payment totals
-  const recalculateAllStatuses = async () => {
-    const loans = await db.loans.toArray();
-    const now = new Date().toISOString();
-    await Promise.all(
-      loans.map(async (loan) => {
-        const payments = await db.payments.where("loan_id").equals(loan.id).toArray();
-        const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
-        let status: "OPEN" | "PARTIAL" | "PAID";
-        if (totalPaid >= Number(loan.amount)) status = "PAID";
-        else if (totalPaid > 0) status = "PARTIAL";
-        else status = "OPEN";
-        if (status !== loan.status) {
-          await db.loans.update(loan.id, { status, updated_at: now });
-        }
-      })
-    );
-  };
-
-  const handleFixStatuses = async () => {
-    try {
-      await recalculateAllStatuses();
-      toast.success("All loan statuses recalculated from payment history!");
-    } catch (err: any) {
-      toast.error("Fix failed: " + err.message);
     }
   };
 
@@ -275,17 +243,6 @@ export default function Settings() {
             }
           />
 
-          <RowDivider />
-
-          {/* Fix Statuses */}
-          <SettingsRow
-            icon={<Wrench className="w-4 h-4 text-white" />}
-            iconBg="bg-orange-500"
-            title="Recalculate Loan Statuses"
-            subtitle="Fix statuses from payment history"
-            onClick={handleFixStatuses}
-            action={<ChevronRight className="w-4 h-4 text-muted-foreground/50" />}
-          />
         </SettingsGroup>
 
         {/* Import feedback */}
@@ -444,28 +401,30 @@ function DisplaySection() {
 
         {/* Custom symbol input */}
         {showCustomInput && (
-          <div className="flex items-center gap-2 px-4 pb-3 ml-11">
-            <input
-              type="text"
-              maxLength={6}
-              value={customSymbol}
-              onChange={e => setCustomSymbol(e.target.value)}
-              placeholder="Symbol e.g. CHF"
-              className="flex-1 h-8 px-3 text-sm border rounded-lg bg-background"
-            />
-            <Select
-              value={settings.currencyPosition}
-              onValueChange={v => update({ currencyPosition: v as 'before' | 'after' })}
-            >
-              <SelectTrigger className="w-24 h-8 text-xs border-muted">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="before" className="text-xs">Before</SelectItem>
-                <SelectItem value="after" className="text-xs">After</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button size="sm" className="h-8 text-xs px-3" onClick={handleCustomSubmit}>Save</Button>
+          <div className="px-4 pb-3">
+            <div className="flex flex-wrap items-center gap-2 pl-11">
+              <input
+                type="text"
+                maxLength={6}
+                value={customSymbol}
+                onChange={e => setCustomSymbol(e.target.value)}
+                placeholder="Symbol e.g. CHF"
+                className="flex-1 min-w-[80px] h-8 px-3 text-sm border rounded-lg bg-background"
+              />
+              <Select
+                value={settings.currencyPosition}
+                onValueChange={v => update({ currencyPosition: v as 'before' | 'after' })}
+              >
+                <SelectTrigger className="w-24 h-8 text-xs border-muted">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="before" className="text-xs">Before</SelectItem>
+                  <SelectItem value="after" className="text-xs">After</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" className="h-8 text-xs px-3 shrink-0" onClick={handleCustomSubmit}>Save</Button>
+            </div>
           </div>
         )}
 
