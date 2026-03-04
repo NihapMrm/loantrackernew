@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:ordering="together">
+    <!-- Zoom in with stagger -->
+    <objectAnimator
+        android:propertyName="scaleX"
+        android:valueFrom="0.0"
+        android:valueTo="1.0"
+        android:duration="400"
+        android:startOffset="160"
+        android:interpolator="@android:interpolator/overshoot"/>
+    <objectAnimator
+        android:propertyName="scaleY"
+        android:valueFrom="0.0"
+        android:valueTo="1.0"
+        android:duration="400"
+        android:startOffset="160"
+        android:interpolator="@android:interpolator/overshoot"/>
+    <!-- Orbit clockwise around icon center (pivot is set to 250,250 in the vector group) -->
+    <objectAnimator
+        android:propertyName="rotation"
+        android:valueFrom="0"
+        android:valueTo="360"
+        android:duration="700"
+        android:startOffset="700"
+        android:interpolator="@android:interpolator/accelerate_decelerate"/>
+</set>

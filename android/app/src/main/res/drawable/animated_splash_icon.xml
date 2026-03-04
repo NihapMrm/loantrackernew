@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/loantracker">
+    <!-- Center shield - first to appear -->
+    <target android:name="grp_shield"     android:animation="@animator/anim_shield"/>
+    <!-- Navy outlines -->
+    <target android:name="grp_outline_l"  android:animation="@animator/anim_outline"/>
+    <target android:name="grp_outline_r"  android:animation="@animator/anim_outline"/>
+    <!-- Arcs orbit clockwise around center -->
+    <target android:name="grp_arc_l"      android:animation="@animator/anim_loader_arc"/>
+    <target android:name="grp_arc_r"      android:animation="@animator/anim_loader_arc"/>
+    <target android:name="grp_tiny_r"     android:animation="@animator/anim_loader_arc"/>
+    <!-- Arrows orbit clockwise around center -->
+    <target android:name="grp_arrow_up"   android:animation="@animator/anim_loader_arrow"/>
+    <target android:name="grp_arrow_dn"   android:animation="@animator/anim_loader_arrow"/>
+    <!-- Sparkles zoom in then blink -->
+    <target android:name="grp_spark_tl"   android:animation="@animator/anim_spark"/>
+    <target android:name="grp_spark_tr"   android:animation="@animator/anim_spark"/>
+    <target android:name="grp_spark_bl"   android:animation="@animator/anim_spark"/>
+    <target android:name="grp_spark_br"   android:animation="@animator/anim_spark"/>
+    <!-- Dollar sign last -->
+    <target android:name="grp_dollar"     android:animation="@animator/anim_dollar"/>
+</animated-vector>
