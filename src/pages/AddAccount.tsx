@@ -97,13 +97,16 @@ export default function AddAccount() {
     <MobileLayout showNav={false}>
       <div className="px-4 pt-4 pb-4 max-w-2xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <div className="flex items-center gap-2 mb-6">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl lg:text-2xl font-bold text-foreground">
-            {isEdit ? 'Edit Account' : 'Add Account'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-5 rounded-full bg-primary" />
+            <span className="text-sm font-black tracking-tight text-foreground uppercase">
+              {isEdit ? 'Edit Account' : 'Add Account'}
+            </span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
@@ -119,15 +122,15 @@ export default function AddAccount() {
                     type="button"
                     onClick={() => setIcon(iconOption.value)}
                     className={cn(
-                      'p-3 lg:p-4 rounded-xl border-2 transition-all flex items-center justify-center',
+                      'p-3 rounded-xl border-2 transition-all flex items-center justify-center',
                       icon === iconOption.value
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card hover:border-primary/50'
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50'
+                        : 'border-border bg-card hover:border-emerald-300'
                     )}
                   >
                     <IconComponent className={cn(
-                      'w-5 h-5 lg:w-6 lg:h-6',
-                      icon === iconOption.value ? 'text-primary' : 'text-muted-foreground'
+                      'w-5 h-5',
+                      icon === iconOption.value ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
                     )} />
                   </button>
                 );

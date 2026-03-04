@@ -120,13 +120,16 @@ export default function AddLoan() {
     <MobileLayout showNav={false}>
       <div className="px-4 pt-4 pb-4 max-w-2xl mx-auto lg:px-8 lg:pt-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <div className="flex items-center gap-2 mb-6">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl lg:text-2xl font-bold text-foreground">
-            {isEdit ? 'Edit Loan' : 'Add Loan'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-5 rounded-full bg-primary" />
+            <span className="text-sm font-black tracking-tight text-foreground uppercase">
+              {isEdit ? 'Edit Loan' : 'Add Loan'}
+            </span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">

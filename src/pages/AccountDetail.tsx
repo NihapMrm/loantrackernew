@@ -5,11 +5,20 @@ import { useLoans, calculateBalance, Loan, useCreatePayment, useResetLoanPayment
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AmountDisplay, StatusBadge, MarqueeAmount } from '@/components/ui/amount-display';
-import { ArrowLeft, User, Calendar } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Wallet, PiggyBank, Landmark, CreditCard, Banknote, Building2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import confetti from 'canvas-confetti';
 import { SwipeableLoanCard, useSwipeOpen } from '@/components/SwipeableLoanCard';
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  'wallet': Wallet,
+  'piggy-bank': PiggyBank,
+  'landmark': Landmark,
+  'credit-card': CreditCard,
+  'banknote': Banknote,
+  'building-2': Building2,
+};
 
 export default function AccountDetail() {
   const { id } = useParams<{ id: string }>();
@@ -99,57 +108,78 @@ export default function AccountDetail() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-24 max-w-4xl mx-auto lg:px-8 lg:pt-8">
+      <div className="px-4 pt-4 pb-4 max-w-4xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/accounts')}>
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/accounts')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{account.name}</h1>
-            {account.description && (
-              <p className="text-sm lg:text-base text-muted-foreground">{account.description}</p>
-            )}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="w-1.5 h-5 rounded-full bg-primary shrink-0" />
+            <span className="text-sm font-black tracking-tight text-foreground truncate uppercase">{account.name}</span>
           </div>
         </div>
 
-        {/* Summary Card */}
-        <Card className="shadow-card mb-6">
-          <CardContent className="p-4 lg:p-6">
-            <p className="text-sm lg:text-base text-muted-foreground mb-1">Total to Receive</p>
-            <MarqueeAmount><AmountDisplay amount={totalToReceive} size="xl" type="GIVEN" className="lg:text-3xl" /></MarqueeAmount>
-            <p className="text-xs lg:text-sm text-muted-foreground mt-2">
-              From {accountLoans.length} outstanding {accountLoans.length === 1 ? 'loan' : 'loans'}
-            </p>
-          </CardContent>
-        </Card>
+        {/* Account Hero Tile */}
+        {(() => {
+          const IconComponent = iconMap[account.icon] || Wallet;
+          return (
+            <div className="relative rounded-2xl bg-foreground p-5 overflow-hidden">
+              <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+              <div className="flex items-center gap-4 relative">
+                <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
+                  <IconComponent className="w-6 h-6 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-black text-white text-xl tracking-tight truncate">{account.name}</p>
+                  {account.description && (
+                    <p className="text-white/60 text-sm mt-0.5">{account.description}</p>
+                  )}
+                </div>
+              </div>
+              <div className="relative mt-4 rounded-xl bg-emerald-500/20 border border-emerald-400/20 p-3">
+                <p className="text-emerald-300 text-xs font-medium mb-0.5">Total to Receive</p>
+                <MarqueeAmount><AmountDisplay amount={totalToReceive} size="xl" type="GIVEN" className="text-emerald-400 font-black" /></MarqueeAmount>
+                <p className="text-emerald-400/60 text-xs mt-1">
+                  From {accountLoans.length} outstanding {accountLoans.length === 1 ? 'loan' : 'loans'}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Loans List */}
-        <h2 className="text-lg lg:text-xl font-semibold text-foreground mb-3">Who Owes You</h2>
-        
-        {accountLoans.length === 0 ? (
-          <Card className="shadow-card">
-            <CardContent className="p-6 text-center lg:py-8">
-              <p className="text-muted-foreground">No outstanding loans from this account</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {accountLoans.map((loan, i) => (
-              <SwipeableLoanCard
-                key={loan.id}
-                onAddPayment={() => handleQuickAddPayment(loan)}
-                onMarkPaid={() => handleQuickMarkPaid(loan)}
-                onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
-                onMarkPartial={() => handleQuickMarkPartial(loan)}
-                status={loan.status}
-                peekDelay={i * 150}
-              >
-                <AccountLoanCard loan={loan} />
-              </SwipeableLoanCard>
-            ))}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-5 rounded-full bg-primary" />
+            <span className="text-sm font-black tracking-tight text-foreground uppercase">Who Owes You</span>
           </div>
-        )}
+
+          {accountLoans.length === 0 ? (
+            <Card className="shadow-card">
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground">No outstanding loans from this account</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {accountLoans.map((loan, i) => (
+                <SwipeableLoanCard
+                  key={loan.id}
+                  onAddPayment={() => handleQuickAddPayment(loan)}
+                  onMarkPaid={() => handleQuickMarkPaid(loan)}
+                  onMarkUnpaid={() => handleQuickMarkUnpaid(loan)}
+                  onMarkPartial={() => handleQuickMarkPartial(loan)}
+                  status={loan.status}
+                  peekDelay={i * 150}
+                >
+                  <AccountLoanCard loan={loan} />
+                </SwipeableLoanCard>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </MobileLayout>
   );
@@ -164,11 +194,11 @@ function AccountLoanCard({ loan }: { loan: Loan }) {
         <CardContent className="p-4 lg:p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
+              <div className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="font-medium text-foreground lg:text-lg">
+                <p className="font-medium text-foreground">
                   {loan.person?.name || 'Unknown'}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

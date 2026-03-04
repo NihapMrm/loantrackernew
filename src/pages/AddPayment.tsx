@@ -93,33 +93,38 @@ export default function AddPayment() {
     <MobileLayout showNav={false}>
       <div className="px-4 pt-4 pb-4">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <div className="flex items-center gap-2 mb-6">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-foreground">Add Payment</h1>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-5 rounded-full bg-primary" />
+            <span className="text-sm font-black tracking-tight text-foreground uppercase">Add Payment</span>
+          </div>
         </div>
 
         {/* Loan Info */}
-        <Card className={`shadow-card border-0 mb-4 ${loan.type === 'GIVEN' ? 'bg-loan-given-light' : 'bg-loan-taken-light'}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center">
-                  <User className="w-5 h-5 text-foreground" />
-                </div>
-                <div>
-                  <p className="font-medium">{loan.person?.name}</p>
-                  <LoanTypeBadge type={loan.type} />
-                </div>
+        <div className={`rounded-2xl border p-4 mb-4 ${
+          loan.type === 'GIVEN'
+            ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800'
+            : 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                <User className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="text-right max-w-[140px] min-w-0">
-                <p className="text-xs text-muted-foreground">Remaining</p>
-                <MarqueeAmount><AmountDisplay amount={balance} type={loan.type} size="lg" /></MarqueeAmount>
+              <div>
+                <p className="font-medium">{loan.person?.name}</p>
+                <LoanTypeBadge type={loan.type} />
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-right max-w-[140px] min-w-0">
+              <p className="text-xs text-muted-foreground">Remaining</p>
+              <MarqueeAmount><AmountDisplay amount={balance} type={loan.type} size="lg" /></MarqueeAmount>
+            </div>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Card className="shadow-card">

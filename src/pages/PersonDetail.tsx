@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit, Trash2, Plus, User, Phone, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Plus, Phone, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import confetti from 'canvas-confetti';
 import { SwipeableLoanCard, useSwipeOpen } from '@/components/SwipeableLoanCard';
@@ -111,24 +111,25 @@ export default function PersonDetail() {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-4 pb-4 space-y-4 max-w-4xl mx-auto lg:px-8 lg:pt-8 lg:space-y-6">
+      <div className="px-4 pt-4 pb-4 space-y-4 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex-1">
-            <h1 className="text-xl lg:text-2xl font-bold text-foreground">{person.name}</h1>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="w-1.5 h-5 rounded-full bg-primary shrink-0" />
+            <span className="text-sm font-black tracking-tight text-foreground truncate uppercase">{person.name}</span>
           </div>
           <Link to={`/edit-person/${id}`}>
-            <Button variant="ghost" size="icon">
-              <Edit className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="shrink-0">
+              <Edit className="w-4 h-4" />
             </Button>
           </Link>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-destructive">
-                <Trash2 className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="shrink-0 text-destructive">
+                <Trash2 className="w-4 h-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -148,54 +149,55 @@ export default function PersonDetail() {
           </AlertDialog>
         </div>
 
-        {/* Person Info */}
-        <Card className="shadow-card">
-          <CardContent className="p-4 space-y-3 lg:p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-secondary flex items-center justify-center">
-                <User className="w-6 h-6 lg:w-8 lg:h-8 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground lg:text-lg">{person.name}</p>
-                {person.phone && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Phone className="w-3 h-3" /> {person.phone}
-                  </p>
-                )}
-              </div>
+        {/* Person Hero Tile */}
+        <div className="relative rounded-2xl bg-foreground p-5 overflow-hidden">
+          <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+          <div className="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+          <div className="flex items-center gap-4 relative">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
+              <span className="text-white font-black text-xl">{person.name[0].toUpperCase()}</span>
             </div>
-            {person.notes && (
-              <div className="flex items-start gap-2 text-sm text-muted-foreground pt-2 border-t border-border">
-                <FileText className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <p>{person.notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <div className="min-w-0">
+              <p className="font-black text-white text-xl tracking-tight truncate">{person.name}</p>
+              {person.phone && (
+                <p className="text-white/60 text-sm mt-0.5 flex items-center gap-1.5">
+                  <Phone className="w-3 h-3 shrink-0" /> {person.phone}
+                </p>
+              )}
+            </div>
+          </div>
+          {person.notes && (
+            <div className="relative mt-3 pt-3 border-t border-white/10">
+              <p className="text-white/60 text-sm flex items-start gap-1.5">
+                <FileText className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                {person.notes}
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Balance Summary */}
-        <div className="grid grid-cols-2 gap-3 lg:gap-4">
-          <Card className="bg-loan-given-light border-0 shadow-sm">
-            <CardContent className="p-4 text-center lg:p-6">
-              <p className="text-xs lg:text-sm font-medium text-loan-given-foreground mb-1">To Receive</p>
-              <MarqueeAmount><AmountDisplay amount={toReceive} size="lg" className="text-loan-given lg:text-2xl" /></MarqueeAmount>
-            </CardContent>
-          </Card>
-          <Card className="bg-loan-taken-light border-0 shadow-sm">
-            <CardContent className="p-4 text-center lg:p-6">
-              <p className="text-xs lg:text-sm font-medium text-loan-taken-foreground mb-1">To Pay</p>
-              <MarqueeAmount><AmountDisplay amount={toPay} size="lg" className="text-loan-taken lg:text-2xl" /></MarqueeAmount>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-4 text-center">
+            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 mb-1.5">To Receive</p>
+            <MarqueeAmount><AmountDisplay amount={toReceive} size="lg" className="text-emerald-600 dark:text-emerald-400 font-black" /></MarqueeAmount>
+          </div>
+          <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 p-4 text-center">
+            <p className="text-xs font-medium text-rose-700 dark:text-rose-300 mb-1.5">To Pay</p>
+            <MarqueeAmount><AmountDisplay amount={toPay} size="lg" className="text-rose-600 dark:text-rose-400 font-black" /></MarqueeAmount>
+          </div>
         </div>
 
         {/* Loans Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg lg:text-xl font-semibold text-foreground">Loans</h2>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-5 rounded-full bg-primary" />
+              <span className="text-sm font-black tracking-tight text-foreground uppercase">Loans</span>
+            </div>
             <Link to={`/add-loan?person=${id}`}>
-              <Button size="sm" variant="outline" className="gap-1">
-                <Plus className="w-4 h-4" />
+              <Button size="sm" variant="outline" className="gap-1 h-8 rounded-xl text-xs">
+                <Plus className="w-3.5 h-3.5" />
                 Add Loan
               </Button>
             </Link>

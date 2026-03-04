@@ -211,12 +211,12 @@ export default function Settings() {
           <div className="rounded-2xl bg-foreground p-5 flex items-center gap-4 relative overflow-hidden">
             <div className="absolute -bottom-8 -right-8 w-36 h-36 rounded-full bg-white/5 pointer-events-none" />
             <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
-            <div className="w-16 h-16 rounded-[18px] overflow-hidden shrink-0 z-10 shadow-lg">
+            <div className="w-16 h-16 rounded-[18px] overflow-hidden shrink-0 z-10 shadow-lg bg-white p-2">
               <LoanTrackerLogo className="w-full h-full" />
             </div>
             <div className="z-10">
               <p className="text-xl font-black text-white leading-tight tracking-tight">LoanTracker</p>
-              <p className="text-[11px] text-white/50 font-medium mt-0.5">Version 2.0.0 · 100% Offline</p>
+              <p className="text-[11px] text-white/50 font-medium mt-0.5">Version 1.0.0 · 100% Offline</p>
               <div className="flex items-center gap-1 mt-2">
                 <WifiOff className="w-3 h-3 text-white/40" />
                 <span className="text-[10px] text-white/40">All data stays on this device</span>
