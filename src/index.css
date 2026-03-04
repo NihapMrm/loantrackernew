@@ -142,6 +142,17 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    /* Prevent long-press context menu / link drag in WebView */
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Re-enable selection for text inputs */
+  input, textarea, [contenteditable] {
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
   }
 
   /* Smooth scrolling */
@@ -153,6 +164,12 @@
   /* Better touch targets for mobile */
   button, a, input, select, textarea {
     @apply touch-manipulation;
+  }
+
+  /* Prevent drag ghost on links and images in WebView */
+  a, img {
+    -webkit-user-drag: none;
+    user-drag: none;
   }
 
   /* Optimize page transitions */
