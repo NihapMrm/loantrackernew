@@ -62,9 +62,9 @@ class LoanTrackerDB extends Dexie {
 
 export const db = new LoanTrackerDB();
 
-// Generate a simple unique ID
+// Generate a cryptographically random unique ID
 export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  return crypto.randomUUID();
 }
 
 export function nowISO(): string {

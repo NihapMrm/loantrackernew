@@ -71,10 +71,10 @@ function AppContent() {
   }
 
   return (
-    <HashRouter>
+    <>
       <BackButtonHandler />
       <AppShell />
-    </HashRouter>
+    </>
   );
 }
 
@@ -139,7 +139,9 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner position="top-center"/>
-        <AppContent />
+        <HashRouter>
+          <AppContent />
+        </HashRouter>
       </TooltipProvider>
     </SecurityProvider>
   </QueryClientProvider>

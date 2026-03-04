@@ -90,7 +90,7 @@ export function LockScreen() {
     }
     
     // Check if PIN is correct without setting isUnlocked yet
-    const isCorrect = verifyPIN(pinToVerify);
+    const isCorrect = await verifyPIN(pinToVerify);
     
     if (!isCorrect) {
       const newFailedAttempts = failedAttempts + 1;

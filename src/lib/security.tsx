@@ -10,7 +10,7 @@ interface SecurityContextType {
   biometricType: string | null;
   setPIN: (pin: string) => Promise<void>;
   removePIN: () => Promise<void>;
-  verifyPIN: (pin: string) => boolean;
+  verifyPIN: (pin: string) => Promise<boolean>;
   enableBiometric: () => Promise<void>;
   disableBiometric: () => Promise<void>;
   authenticate: (pin: string) => Promise<boolean>;
@@ -21,6 +21,15 @@ const SecurityContext = createContext<SecurityContextType | undefined>(undefined
 
 const PIN_KEY = 'app_security_pin';
 const BIOMETRIC_KEY = 'app_biometric_enabled';
+
+async function hashPIN(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 export function SecurityProvider({ children }: { children: ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(true); // Default unlocked (no security)
@@ -89,7 +98,8 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
       throw new Error('PIN must be exactly 4 digits');
     }
-    localStorage.setItem(PIN_KEY, pin);
+    const hashed = await hashPIN(pin);
+    localStorage.setItem(PIN_KEY, hashed);
     setHasPIN(true);
     setIsUnlocked(true);
   };
@@ -102,13 +112,15 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     setIsUnlocked(true);
   };
 
-  const verifyPIN = (pin: string): boolean => {
+  const verifyPIN = async (pin: string): Promise<boolean> => {
     const stored = localStorage.getItem(PIN_KEY);
-    return stored === pin;
+    if (!stored) return false;
+    const hashed = await hashPIN(pin);
+    return stored === hashed;
   };
 
   const authenticate = async (pin: string): Promise<boolean> => {
-    if (verifyPIN(pin)) {
+    if (await verifyPIN(pin)) {
       setIsUnlocked(true);
       return true;
     }
