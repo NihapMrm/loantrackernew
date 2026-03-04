@@ -9,6 +9,13 @@ const config: CapacitorConfig = {
       skipNativeAuth: false,
       providers: ['google.com'],
     },
+    SplashScreen: {
+      launchAutoHide: false,
+      launchShowDuration: 0,
+      androidSplashResourceName: 'splash',
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
   },
 };
 

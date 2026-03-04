@@ -10,7 +10,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         applySystemBarsAppearance();
     }
 
@@ -29,6 +28,9 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void applySystemBarsAppearance() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
         View decorView = getWindow().getDecorView();
         WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(getWindow(), decorView);
         controller.setAppearanceLightStatusBars(true);
