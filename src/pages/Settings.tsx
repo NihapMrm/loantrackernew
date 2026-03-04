@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { useSecurity } from "@/lib/security";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -24,6 +25,9 @@ import {
   Calendar,
   Vibrate,
   ChevronDown,
+  Delete,
+  WifiOff,
+  Database,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -194,90 +198,108 @@ export default function Settings() {
 
   return (
     <MobileLayout>
-      <div className="pb-8 max-w-2xl mx-auto">
+      <div className="pb-10 max-w-2xl mx-auto">
 
-        {/* ── App Profile Header ── */}
-        <div className="flex flex-col items-center gap-3 px-4 pt-10 pb-8">
-          <div className="w-20 h-20 rounded-[22px] overflow-hidden shadow-lg shadow-primary/30 bg-white">
-            <LoanTrackerLogo className="w-full h-full" />
+        {/* ── Header ── */}
+        <div className="px-4 pt-6 pb-4 lg:px-10 lg:pt-8">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-1.5 h-5 rounded-full bg-primary" />
+            <span className="text-sm font-black tracking-tight text-foreground">Settings</span>
           </div>
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-foreground">LoanTracker</h1>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">Version 1.0.0</span>
-              <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+
+          {/* App hero tile */}
+          <div className="rounded-2xl bg-foreground p-5 flex items-center gap-4 relative overflow-hidden">
+            <div className="absolute -bottom-8 -right-8 w-36 h-36 rounded-full bg-white/5 pointer-events-none" />
+            <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+            <div className="w-16 h-16 rounded-[18px] overflow-hidden shrink-0 z-10 shadow-lg">
+              <LoanTrackerLogo className="w-full h-full" />
+            </div>
+            <div className="z-10">
+              <p className="text-xl font-black text-white leading-tight tracking-tight">LoanTracker</p>
+              <p className="text-[11px] text-white/50 font-medium mt-0.5">Version 2.0.0 · 100% Offline</p>
+              <div className="flex items-center gap-1 mt-2">
+                <WifiOff className="w-3 h-3 text-white/40" />
+                <span className="text-[10px] text-white/40">All data stays on this device</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── Display Section ── */}
-        <DisplaySection />
+        <div className="px-4 space-y-1 lg:px-10">
 
-        {/* ── Data Section ── */}
-        <SectionLabel>Data</SectionLabel>
-        <SettingsGroup>
+          {/* ── Display Section ── */}
+          <DisplaySection />
 
-          {/* Export */}
-          <SettingsRow
-            icon={<Download className="w-4 h-4 text-white" />}
-            iconBg="bg-blue-500"
-            title="Export / Backup"
-            subtitle="Save a backup of all your data"
-            onClick={handleExport}
-            action={<ChevronRight className="w-4 h-4 text-muted-foreground/50" />}
-          />
+          {/* ── Data Section ── */}
+          <SectionLabel>Data</SectionLabel>
+          <div className="grid grid-cols-2 gap-2.5">
 
-          <RowDivider />
+            {/* Export tile */}
+            <button
+              onClick={handleExport}
+              className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-3 text-left active:scale-[0.97] transition-transform shadow-sm"
+            >
+              <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                <Download className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-foreground">Export</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Save a backup</p>
+              </div>
+            </button>
 
-          {/* Import */}
-          <SettingsRow
-            icon={<Upload className="w-4 h-4 text-white" />}
-            iconBg="bg-indigo-500"
-            title="Import Data"
-            subtitle={importing ? "Importing…" : "Restore from a backup file"}
-            onClick={() => fileRef.current?.click()}
-            action={importing
-              ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              : <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
-            }
-          />
+            {/* Import tile */}
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-3 text-left active:scale-[0.97] transition-transform shadow-sm"
+            >
+              <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                {importing
+                  ? <Loader2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                  : <Upload className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                }
+              </span>
+              <div>
+                <p className="text-sm font-bold text-foreground">Import</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{importing ? 'Importing…' : 'Restore backup'}</p>
+              </div>
+            </button>
 
-        </SettingsGroup>
-
-        {/* Import feedback */}
-        {importResult && (
-          <div className="mx-4 mt-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-start gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-            <p className="text-sm text-emerald-700">
-              Imported {importResult.people} people, {importResult.accounts} accounts, {importResult.loans} loans, {importResult.payments} payments.
-            </p>
           </div>
-        )}
-        {importError && (
-          <div className="mx-4 mt-2 rounded-xl bg-red-50 border border-red-200 p-3 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
-            <p className="text-sm text-red-700">{importError}</p>
-          </div>
-        )}
-        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} />
 
-        {/* ── Security Section ── */}
-        {Capacitor.isNativePlatform() && <SecuritySection />}
+          {/* Import feedback */}
+          {importResult && (
+            <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-3.5 flex items-start gap-2.5">
+              <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                Imported {importResult.people} people, {importResult.accounts} accounts, {importResult.loans} loans, {importResult.payments} payments.
+              </p>
+            </div>
+          )}
+          {importError && (
+            <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 p-3.5 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-rose-700 dark:text-rose-400">{importError}</p>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} />
 
-        {/* ── Danger Zone ── */}
-        <SectionLabel>Danger Zone</SectionLabel>
-        <SettingsGroup>
+          {/* ── Security Section ── */}
+          {Capacitor.isNativePlatform() && <SecuritySection />}
+
+          {/* ── Danger Zone ── */}
+          <SectionLabel>Danger Zone</SectionLabel>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-muted/60 transition-colors">
-                <span className="w-8 h-8 rounded-[10px] bg-red-500 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-4 h-4 text-white" />
+              <button className="w-full rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform">
+                <span className="w-10 h-10 rounded-[12px] bg-rose-500 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5 text-white" />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-destructive">Clear All Data</p>
-                  <p className="text-xs text-muted-foreground">Permanently delete everything on this device</p>
+                  <p className="text-sm font-bold text-rose-600 dark:text-rose-400">Clear All Data</p>
+                  <p className="text-xs text-rose-500/70 dark:text-rose-500/60 mt-0.5">Permanently delete everything on this device</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-rose-400/50 shrink-0" />
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -295,20 +317,10 @@ export default function Settings() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </SettingsGroup>
 
-        {/* ── About ── */}
-        <SectionLabel>About</SectionLabel>
-        <SettingsGroup>
-          <SettingsRow
-            icon={<Shield className="w-4 h-4 text-white" />}
-            iconBg="bg-slate-500"
-            title="100% Offline"
-            subtitle="All data stays on this device. No internet needed."
-          />
-        </SettingsGroup>
+          <div className="h-2" />
 
-        <p className="text-center text-xs text-muted-foreground/50 mt-6 pb-2">LoanTracker v2.0.0</p>
+        </div>
       </div>
     </MobileLayout>
   );
@@ -343,8 +355,8 @@ const DATE_FORMATS: { value: AppSettings['dateFormat']; label: string }[] = [
 
 function DisplaySection() {
   const { settings, update } = useSettings();
-  const [customSymbol, setCustomSymbol]     = useState('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customSymbol, setCustomSymbol] = useState('');
+  const [showCustomDialog, setShowCustomDialog] = useState(false);
 
   const currentPreset = CURRENCY_PRESETS.find(
     p => p.symbol === settings.currencySymbol && p.symbol !== ''
@@ -353,9 +365,9 @@ function DisplaySection() {
 
   const handleCurrencyChange = (value: string) => {
     if (value === 'custom') {
-      setShowCustomInput(true);
+      setCustomSymbol('');
+      setShowCustomDialog(true);
     } else {
-      setShowCustomInput(false);
       const preset = CURRENCY_PRESETS.find(p => p.symbol === value)!;
       update({ currencySymbol: preset.symbol, currencyPosition: preset.position });
     }
@@ -364,28 +376,30 @@ function DisplaySection() {
   const handleCustomSubmit = () => {
     if (customSymbol.trim()) {
       update({ currencySymbol: customSymbol.trim() });
-      setShowCustomInput(false);
+      setShowCustomDialog(false);
     }
   };
 
   return (
     <>
       <SectionLabel>Display</SectionLabel>
-      <SettingsGroup>
 
-        {/* Currency */}
-        <div className="flex items-center gap-3 px-4 py-3">
-          <span className="w-8 h-8 rounded-[10px] bg-green-500 flex items-center justify-center shrink-0">
-            <DollarSign className="w-4 h-4 text-white" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">Currency</p>
-            <p className="text-xs text-muted-foreground">
-              Preview: {formatAmount(12500, settings)}
-            </p>
+      {/* Bento grid for display settings */}
+      <div className="grid grid-cols-2 gap-2.5">
+
+        {/* Currency tile */}
+        <div className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+              <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Currency</p>
+            <p className="text-base font-black text-foreground mt-0.5">{formatAmount(12500, settings)}</p>
           </div>
           <Select value={currencySelectValue} onValueChange={handleCurrencyChange}>
-            <SelectTrigger className="w-28 h-8 text-xs border-muted">
+            <SelectTrigger className="h-7 text-xs border-muted w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -398,134 +412,153 @@ function DisplaySection() {
           </Select>
         </div>
 
-        {/* Custom symbol input */}
-        {showCustomInput && (
-          <div className="px-4 pb-3">
-            <div className="flex flex-wrap items-center gap-2 pl-11">
+        {/* Number format tile */}
+        <div className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+              <Hash className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Numbers</p>
+            <p className="text-base font-black text-foreground mt-0.5">
+              {NUMBER_LOCALES.find(l => l.value === settings.numberLocale)?.example ?? '—'}
+            </p>
+          </div>
+          <Select value={settings.numberLocale} onValueChange={v => update({ numberLocale: v as AppSettings['numberLocale'] })}>
+            <SelectTrigger className="h-7 text-xs border-muted w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {NUMBER_LOCALES.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Date format tile */}
+        <div className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+              <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</p>
+            <p className="text-base font-black text-foreground mt-0.5">{formatDate(new Date().toISOString(), settings)}</p>
+          </div>
+          <Select value={settings.dateFormat} onValueChange={v => update({ dateFormat: v as AppSettings['dateFormat'] })}>
+            <SelectTrigger className="h-7 text-xs border-muted w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_FORMATS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Symbol position tile */}
+        <div className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+              <ChevronDown className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Symbol</p>
+            <p className="text-base font-black text-foreground capitalize mt-0.5">{settings.currencyPosition}</p>
+          </div>
+          <Select
+            value={settings.currencyPosition}
+            onValueChange={v => update({ currencyPosition: v as 'before' | 'after' })}
+          >
+            <SelectTrigger className="h-7 text-xs border-muted w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="before" className="text-xs">Before</SelectItem>
+              <SelectItem value="after" className="text-xs">After</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+      </div>
+
+      {/* Custom symbol dialog */}
+      <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>
+        <DialogContent className="max-w-sm rounded-3xl p-0 overflow-hidden mx-4 w-[calc(100%-2rem)] margin-0-auto">
+          <div className="flex flex-col items-center px-6 pt-8 pb-6 gap-5">
+
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center relative overflow-hidden shrink-0">
+              <div className="absolute -bottom-3 -right-3 w-10 h-10 rounded-full bg-emerald-200/50 dark:bg-emerald-800/30 pointer-events-none" />
+              <DollarSign className="w-7 h-7 text-emerald-600 dark:text-emerald-400 z-10" />
+            </div>
+
+            <DialogHeader className="text-center space-y-1 p-0">
+              <DialogTitle className="text-xl font-black tracking-tight">Custom Symbol</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Enter a currency symbol and choose its position
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="w-full space-y-3">
               <input
                 type="text"
                 maxLength={6}
                 value={customSymbol}
                 onChange={e => setCustomSymbol(e.target.value)}
-                placeholder="Symbol e.g. CHF"
-                className="flex-1 min-w-[80px] h-8 px-3 text-sm border rounded-lg bg-background"
+                onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
+                placeholder="e.g. CHF, Fr, ฿"
+                autoFocus
+                className="w-full h-12 px-4 text-center text-xl font-black tracking-widest border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
               <Select
                 value={settings.currencyPosition}
                 onValueChange={v => update({ currencyPosition: v as 'before' | 'after' })}
               >
-                <SelectTrigger className="w-24 h-8 text-xs border-muted">
+                <SelectTrigger className="w-full h-10 text-sm rounded-2xl border-muted">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="before" className="text-xs">Before</SelectItem>
-                  <SelectItem value="after" className="text-xs">After</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button size="sm" className="h-8 text-xs px-3 shrink-0" onClick={handleCustomSubmit}>Save</Button>
-            </div>
-          </div>
-        )}
-
-        <RowDivider />
-
-        {/* Currency position (for presets that could be after) */}
-        {!showCustomInput && (
-          <>
-            <div className="flex items-center gap-3 px-4 py-3">
-              <span className="w-8 h-8 rounded-[10px] bg-teal-500 flex items-center justify-center shrink-0">
-                <ChevronDown className="w-4 h-4 text-white" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Symbol position</p>
-                <p className="text-xs text-muted-foreground">Before or after the amount</p>
-              </div>
-              <Select
-                value={settings.currencyPosition}
-                onValueChange={v => update({ currencyPosition: v as 'before' | 'after' })}
-              >
-                <SelectTrigger className="w-24 h-8 text-xs border-muted">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="before" className="text-xs">Before</SelectItem>
-                  <SelectItem value="after" className="text-xs">After</SelectItem>
+                  <SelectItem value="before">Symbol before amount (e.g. ₹ 100)</SelectItem>
+                  <SelectItem value="after">Symbol after amount (e.g. 100 kr)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <RowDivider />
-          </>
-        )}
 
-        {/* Number format */}
-        <div className="flex items-center gap-3 px-4 py-3">
-          <span className="w-8 h-8 rounded-[10px] bg-violet-500 flex items-center justify-center shrink-0">
-            <Hash className="w-4 h-4 text-white" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">Number format</p>
-            <p className="text-xs text-muted-foreground">Thousands &amp; decimal separators</p>
-          </div>
-          <Select value={settings.numberLocale} onValueChange={v => update({ numberLocale: v as AppSettings['numberLocale'] })}>
-            <SelectTrigger className="w-36 h-8 text-xs border-muted">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {NUMBER_LOCALES.map(opt => (
-                <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                  {opt.example}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <RowDivider />
-
-        {/* Date format */}
-        <div className="flex items-center gap-3 px-4 py-3">
-          <span className="w-8 h-8 rounded-[10px] bg-sky-500 flex items-center justify-center shrink-0">
-            <Calendar className="w-4 h-4 text-white" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">Date format</p>
-            <p className="text-xs text-muted-foreground">Preview: {formatDate(new Date().toISOString(), settings)}</p>
-          </div>
-          <Select value={settings.dateFormat} onValueChange={v => update({ dateFormat: v as AppSettings['dateFormat'] })}>
-            <SelectTrigger className="w-32 h-8 text-xs border-muted">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DATE_FORMATS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {Capacitor.isNativePlatform() && (
-          <>
-            <RowDivider />
-            {/* Haptic feedback */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              <span className="w-8 h-8 rounded-[10px] bg-pink-500 flex items-center justify-center shrink-0">
-                <Vibrate className="w-4 h-4 text-white" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Haptic feedback</p>
-                <p className="text-xs text-muted-foreground">Vibrate on swipe actions</p>
-              </div>
-              <Switch
-                checked={settings.hapticFeedback}
-                onCheckedChange={v => update({ hapticFeedback: v })}
-              />
+            <div className="w-full flex gap-2">
+              <Button variant="ghost" className="flex-1 rounded-2xl text-muted-foreground" onClick={() => setShowCustomDialog(false)}>
+                Cancel
+              </Button>
+              <Button className="flex-1 rounded-2xl" onClick={handleCustomSubmit} disabled={!customSymbol.trim()}>
+                Save
+              </Button>
             </div>
-          </>
-        )}
 
-      </SettingsGroup>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Haptic feedback (native only) */}
+      {Capacitor.isNativePlatform() && (
+        <div className="rounded-2xl bg-card border border-border p-4 flex items-center gap-3 shadow-sm">
+          <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+            <Vibrate className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-foreground">Haptic Feedback</p>
+            <p className="text-xs text-muted-foreground">Vibrate on swipe actions</p>
+          </div>
+          <Switch
+            checked={settings.hapticFeedback}
+            onCheckedChange={v => update({ hapticFeedback: v })}
+          />
+        </div>
+      )}
+
     </>
   );
 }
@@ -534,82 +567,195 @@ function DisplaySection() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-4 pt-6 pb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <p className="pt-5 pb-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
       {children}
     </p>
   );
 }
 
-function SettingsGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mx-4 rounded-2xl bg-card border border-border overflow-hidden shadow-sm">
-      {children}
-    </div>
-  );
-}
-
-function RowDivider() {
-  return <div className="ml-[60px] h-px bg-border" />;
-}
-
-function SettingsRow({
-  icon, iconBg, title, subtitle, action, onClick,
+/* ── PIN numpad dialog ── */
+function PinSetDialog({
+  open, onOpenChange, title, description, onConfirm, loading,
 }: {
-  icon: React.ReactNode;
-  iconBg: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
   title: string;
-  subtitle?: string;
-  action?: React.ReactNode;
-  onClick?: () => void;
+  description: string;
+  onConfirm: (pin: string) => Promise<void>;
+  loading: boolean;
 }) {
-  const inner = (
-    <div className="flex items-center gap-3 px-4 py-3.5">
-      <span className={`w-8 h-8 rounded-[10px] ${iconBg} flex items-center justify-center shrink-0`}>
-        {icon}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      {action && <span className="shrink-0">{action}</span>}
-    </div>
+  const [step, setStep] = useState<'enter' | 'confirm'>('enter');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [error, setError] = useState('');
+  const [shake, setShake] = useState(false);
+
+  const reset = () => {
+    setStep('enter');
+    setPin('');
+    setConfirmPin('');
+    setError('');
+    setShake(false);
+  };
+
+  const handleOpen = (v: boolean) => {
+    if (!v) reset();
+    onOpenChange(v);
+  };
+
+  const triggerShake = (msg: string) => {
+    setError(msg);
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  };
+
+  const handleNumber = (num: string) => {
+    if (step === 'enter') {
+      if (pin.length >= 4) return;
+      const next = pin + num;
+      setPin(next);
+      setError('');
+      if (next.length === 4) {
+        setTimeout(() => setStep('confirm'), 180);
+      }
+    } else {
+      if (confirmPin.length >= 4) return;
+      const next = confirmPin + num;
+      setConfirmPin(next);
+      setError('');
+      if (next.length === 4) {
+        setTimeout(async () => {
+          if (next !== pin) {
+            setConfirmPin('');
+            triggerShake('PINs do not match — try again');
+          } else {
+            await onConfirm(pin);
+            reset();
+          }
+        }, 180);
+      }
+    }
+  };
+
+  const handleDelete = () => {
+    setError('');
+    if (step === 'enter') {
+      setPin(p => p.slice(0, -1));
+    } else {
+      if (confirmPin.length > 0) {
+        setConfirmPin(c => c.slice(0, -1));
+      } else {
+        setStep('enter');
+        setPin('');
+      }
+    }
+  };
+
+  const activePin = step === 'enter' ? pin : confirmPin;
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogContent className="max-w-sm p-0 overflow-hidden rounded-3xl mx-4 w-[calc(100%-2rem)]">
+        <div className="flex flex-col items-center px-6 pt-8 pb-6 gap-6">
+
+          {/* Icon */}
+          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center relative overflow-hidden shrink-0">
+            <div className="absolute -bottom-3 -right-3 w-12 h-12 rounded-full bg-white/10 pointer-events-none" />
+            <Lock className="w-7 h-7 text-primary-foreground z-10" strokeWidth={2.5} />
+          </div>
+
+          {/* Header */}
+          <DialogHeader className="text-center space-y-1 p-0">
+            <DialogTitle className="text-xl font-black tracking-tight">{title}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {step === 'enter' ? description : 'Re-enter PIN to confirm'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Step indicator */}
+          <div className="flex gap-1.5">
+            <div className={`h-1 w-8 rounded-full transition-colors ${step === 'enter' ? 'bg-primary' : 'bg-primary/30'}`} />
+            <div className={`h-1 w-8 rounded-full transition-colors ${step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
+          </div>
+
+          {/* PIN dots */}
+          <div className={`flex gap-5 ${shake ? 'animate-shake' : ''}`}>
+            {Array(4).fill(0).map((_, i) => (
+              <div
+                key={i}
+                className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
+                  i < activePin.length
+                    ? 'bg-primary border-primary scale-110'
+                    : 'bg-transparent border-muted-foreground/30 scale-100'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Error */}
+          {error
+            ? <p className="text-sm text-rose-600 dark:text-rose-400 font-medium text-center -mt-2">{error}</p>
+            : <div className="h-[20px] -mt-2" />
+          }
+
+          {/* Numpad */}
+          <div className="grid grid-cols-3 gap-2 w-full">
+            {['1','2','3','4','5','6','7','8','9','','0','del'].map((num, i) => {
+              if (num === '') return <div key={i} />;
+              if (num === 'del') {
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={loading}
+                    className="h-14 rounded-2xl flex items-center justify-center text-muted-foreground active:scale-95 active:bg-muted transition-transform hover:bg-muted/50 disabled:opacity-30"
+                    onPointerDown={(e) => { e.preventDefault(); handleDelete(); }}
+                  >
+                    <Delete className="w-5 h-5" />
+                  </button>
+                );
+              }
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={loading}
+                  className="h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-foreground active:scale-95 active:bg-primary/10 transition-transform hover:bg-muted/50 disabled:opacity-30"
+                  onPointerDown={(e) => { e.preventDefault(); handleNumber(num); }}
+                >
+                  {num}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Cancel */}
+          <Button variant="ghost" className="w-full rounded-2xl text-muted-foreground" onClick={() => handleOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
+
+        </div>
+      </DialogContent>
+    </Dialog>
   );
-  return onClick
-    ? <button onClick={onClick} className="w-full text-left active:bg-muted/60 transition-colors">{inner}</button>
-    : <div>{inner}</div>;
 }
 
 // Security section for PIN and biometric auth
 function SecuritySection() {
   const { hasPIN, biometricEnabled, biometricType, setPIN, removePIN, enableBiometric, disableBiometric } = useSecurity();
   const [loading, setLoading] = useState(false);
-  const [showPinDialog, setShowPinDialog] = useState(false);
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [pinError, setPinError] = useState('');
+  const [showSetPin, setShowSetPin] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
 
-  const handlePinSubmit = async () => {
-    setPinError('');
-    
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setPinError('PIN must be exactly 4 digits');
-      return;
-    }
-    
-    if (pin !== confirmPin) {
-      setPinError('PINs do not match');
-      return;
-    }
-
+  const handlePinConfirm = async (pin: string) => {
     setLoading(true);
     try {
       await setPIN(pin);
       toast.success('PIN set successfully');
-      setShowPinDialog(false);
-      setPin('');
-      setConfirmPin('');
+      setShowSetPin(false);
+      setShowChangePin(false);
     } catch (err: any) {
-      setPinError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -644,104 +790,46 @@ function SecuritySection() {
     }
   };
 
-  const handlePinInput = (value: string, field: 'pin' | 'confirm') => {
-    const cleaned = value.replace(/\D/g, '').slice(0, 4);
-    if (field === 'pin') {
-      setPin(cleaned);
-    } else {
-      setConfirmPin(cleaned);
-    }
-    setPinError('');
-  };
-
   return (
     <>
       <SectionLabel>Security</SectionLabel>
-      <SettingsGroup>
+      <>
 
-        {/* PIN row */}
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <span className="w-8 h-8 rounded-[10px] bg-yellow-500 flex items-center justify-center shrink-0">
-            <Lock className="w-4 h-4 text-white" />
+        {/* PIN tile */}
+        <div className="rounded-2xl bg-card border border-border p-4 flex items-center gap-3 shadow-sm">
+          <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+            <Lock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">4-Digit PIN</p>
-            <p className="text-xs text-muted-foreground">{hasPIN ? 'PIN is set' : 'Set a PIN to secure your app'}</p>
+            <p className="text-sm font-bold text-foreground">4-Digit PIN</p>
+            <p className="text-xs text-muted-foreground">{hasPIN ? 'PIN is active' : 'Secure your app'}</p>
           </div>
           {!hasPIN ? (
-            <AlertDialog open={showPinDialog} onOpenChange={setShowPinDialog}>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" className="h-7 text-xs px-3">Set PIN</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Set 4-Digit PIN</AlertDialogTitle>
-                  <AlertDialogDescription>Choose a 4-digit PIN to secure your app.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Enter PIN</label>
-                    <input type="password" inputMode="numeric" maxLength={4} value={pin}
-                      onChange={(e) => handlePinInput(e.target.value, 'pin')}
-                      className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
-                      placeholder="••••" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Confirm PIN</label>
-                    <input type="password" inputMode="numeric" maxLength={4} value={confirmPin}
-                      onChange={(e) => handlePinInput(e.target.value, 'confirm')}
-                      className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
-                      placeholder="••••" />
-                  </div>
-                  {pinError && <p className="text-sm text-red-600">{pinError}</p>}
-                </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handlePinSubmit} disabled={loading}>
-                    {loading ? 'Setting…' : 'Set PIN'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <>
+              <Button size="sm" className="h-7 text-xs px-3 rounded-xl" onClick={() => setShowSetPin(true)}>Set PIN</Button>
+              <PinSetDialog
+                open={showSetPin}
+                onOpenChange={setShowSetPin}
+                title="Set PIN"
+                description="Choose a 4-digit PIN to secure your app"
+                onConfirm={handlePinConfirm}
+                loading={loading}
+              />
+            </>
           ) : (
             <div className="flex gap-1.5 shrink-0">
+              <Button size="sm" variant="outline" className="h-7 text-xs px-2.5 rounded-xl" onClick={() => setShowChangePin(true)}>Change</Button>
+              <PinSetDialog
+                open={showChangePin}
+                onOpenChange={setShowChangePin}
+                title="Change PIN"
+                description="Enter a new 4-digit PIN"
+                onConfirm={handlePinConfirm}
+                loading={loading}
+              />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-7 text-xs px-2.5">Change</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Change PIN</AlertDialogTitle>
-                    <AlertDialogDescription>Enter a new 4-digit PIN.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">New PIN</label>
-                      <input type="password" inputMode="numeric" maxLength={4} value={pin}
-                        onChange={(e) => handlePinInput(e.target.value, 'pin')}
-                        className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
-                        placeholder="••••" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Confirm New PIN</label>
-                      <input type="password" inputMode="numeric" maxLength={4} value={confirmPin}
-                        onChange={(e) => handlePinInput(e.target.value, 'confirm')}
-                        className="w-full h-12 px-4 text-center text-2xl tracking-widest border rounded-md"
-                        placeholder="••••" />
-                    </div>
-                    {pinError && <p className="text-sm text-red-600">{pinError}</p>}
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handlePinSubmit} disabled={loading}>
-                      {loading ? 'Changing…' : 'Change PIN'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="destructive" className="h-7 text-xs px-2.5">Remove</Button>
+                  <Button size="sm" variant="destructive" className="h-7 text-xs px-2.5 rounded-xl">Remove</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -761,32 +849,24 @@ function SecuritySection() {
           )}
         </div>
 
-        {/* Biometric row */}
+        {/* Biometric tile */}
         {hasPIN && biometricType && (
-          <>
-            <RowDivider />
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <span className="w-8 h-8 rounded-[10px] bg-purple-500 flex items-center justify-center shrink-0">
-                <Fingerprint className="w-4 h-4 text-white" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{biometricType} Unlock</p>
-                <p className="text-xs text-muted-foreground">Use {biometricType.toLowerCase()} instead of PIN</p>
-              </div>
-              <Switch checked={biometricEnabled} onCheckedChange={handleBiometricToggle} disabled={loading} />
+          <div className="rounded-2xl bg-card border border-border p-4 flex items-center gap-3 shadow-sm">
+            <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+              <Fingerprint className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-foreground">{biometricType} Unlock</p>
+              <p className="text-xs text-muted-foreground">Use {biometricType.toLowerCase()} to unlock</p>
             </div>
-          </>
+            <Switch checked={biometricEnabled} onCheckedChange={handleBiometricToggle} disabled={loading} />
+          </div>
         )}
 
         {!hasPIN && (
-          <>
-            <RowDivider />
-            <div className="px-4 py-3">
-              <p className="text-xs text-muted-foreground">Set a PIN first to enable biometric authentication</p>
-            </div>
-          </>
+          <p className="text-xs text-muted-foreground px-1">Set a PIN first to enable biometric authentication.</p>
         )}
-      </SettingsGroup>
+      </>
     </>
   );
 }

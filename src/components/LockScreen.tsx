@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSecurity } from '@/lib/security';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, Fingerprint, Delete } from 'lucide-react';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
@@ -129,139 +128,142 @@ export function LockScreen() {
     }
   };
 
-  const pinDots = Array(4).fill(0).map((_, i) => (
-    <div
-      key={i}
-      className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
-        isSuccess
-          ? 'bg-green-600 border-green-600 scale-110'
-          : i < pin.length 
-          ? 'bg-blue-600 border-blue-600 scale-110' 
-          : 'bg-transparent border-gray-300 scale-100'
-      }`}
-    />
-  ));
-
-  const numberButtons = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((num, i) => {
-    if (num === '') {
-      return <div key={i} />;
-    }
-    
-    const isDisabled = isSuccess || !!lockoutUntil;
-    
-    if (num === 'del') {
-      return (
-        <Button
-          key={i}
-          variant="ghost"
-          size="lg"
-          type="button"
-          tabIndex={-1}
-          disabled={isDisabled}
-          className="h-16 text-lg font-semibold active:scale-95 active:bg-gray-200 transition-transform focus:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent data-[state=open]:bg-transparent disabled:opacity-50"
-          onPointerDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleDelete();
-          }}
-          onPointerUp={(e) => {
-            (e.currentTarget as HTMLElement).blur();
-          }}
-          onPointerCancel={(e) => {
-            (e.currentTarget as HTMLElement).blur();
-          }}
-        >
-          <Delete className="w-5 h-5" />
-        </Button>
-      );
-    }
-    return (
-      <Button
-        key={i}
-        variant="ghost"
-        size="lg"
-        type="button"
-        tabIndex={-1}
-        disabled={isDisabled}
-        className="h-16 text-2xl font-semibold active:scale-95 active:bg-blue-100 transition-transform focus:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent data-[state=open]:bg-transparent disabled:opacity-50"
-        onPointerDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleNumberClick(num);
-        }}
-        onPointerUp={(e) => {
-          (e.currentTarget as HTMLElement).blur();
-        }}
-        onPointerCancel={(e) => {
-          (e.currentTarget as HTMLElement).blur();
-        }}
-      >
-        {num}
-      </Button>
-    );
-  });
+  const isDisabled = isSuccess || !!lockoutUntil;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
-            <Lock className="w-10 h-10 text-blue-600" />
-          </div>
-          <CardTitle className="text-2xl">Enter PIN</CardTitle>
-          <CardDescription>
-            Enter your 4-digit PIN to unlock
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* PIN Dots */}
-          <div className={`flex justify-center gap-4 py-4 ${shake ? 'animate-shake' : ''}`}>
-            {pinDots}
-          </div>
-          
-          {lockoutUntil ? (
-            <div className="rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3">
-              <p className="text-sm text-red-700 dark:text-red-300 text-center font-medium">
-                Too many failed attempts
-              </p>
-              <p className="text-2xl text-red-600 dark:text-red-400 text-center font-bold mt-1">
-                {remainingSeconds}s
-              </p>
-            </div>
-          ) : error ? (
-            <p className="text-sm text-red-600 text-center font-medium">{error}</p>
-          ) : null}
+    <div className="min-h-screen bg-background flex flex-col">
 
-          {/* Number Pad */}
-          <div className="grid grid-cols-3 gap-2">
-            {numberButtons}
-          </div>
+      {/* ── Header ── */}
+      <div className="px-4 pt-10 pb-6 flex items-center gap-2">
+        <div className="w-1.5 h-5 rounded-full bg-primary" />
+        <span className="text-sm font-black tracking-tight text-foreground">LoanTracker</span>
+      </div>
 
-          {/* Biometric Button (only if enabled) */}
-          {biometricEnabled && biometricType && (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">or</span>
-                </div>
-              </div>
-              
+      {/* ── Body ── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8 max-w-sm mx-auto w-full">
+
+        {/* Icon tile */}
+        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center relative overflow-hidden ${
+          isSuccess
+            ? 'bg-emerald-500'
+            : lockoutUntil
+            ? 'bg-rose-500'
+            : 'bg-primary'
+        }`}>
+          <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+          {isSuccess
+            ? <Lock className="w-9 h-9 text-white z-10" strokeWidth={2.5} />
+            : lockoutUntil
+            ? <Lock className="w-9 h-9 text-white z-10" strokeWidth={2.5} />
+            : <Lock className="w-9 h-9 text-primary-foreground z-10" strokeWidth={2.5} />
+          }
+        </div>
+
+        {/* Title */}
+        <div className="text-center space-y-1">
+          <p className="text-2xl font-black tracking-tight text-foreground">
+            {isSuccess ? 'Welcome back' : 'Enter PIN'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {lockoutUntil
+              ? 'Too many failed attempts'
+              : isSuccess
+              ? 'Unlocking…'
+              : 'Enter your 4-digit PIN to unlock'}
+          </p>
+        </div>
+
+        {/* PIN Dots */}
+        <div className={`flex gap-5 ${shake ? 'animate-shake' : ''}`}>
+          {Array(4).fill(0).map((_, i) => (
+            <div
+              key={i}
+              className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                isSuccess
+                  ? 'bg-emerald-500 border-emerald-500 scale-110'
+                  : lockoutUntil
+                  ? 'bg-rose-300 border-rose-300 scale-100'
+                  : i < pin.length
+                  ? 'bg-primary border-primary scale-110'
+                  : 'bg-transparent border-muted-foreground/30 scale-100'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Status tile */}
+        {lockoutUntil ? (
+          <div className="w-full rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 p-4 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-1">
+              Locked out
+            </p>
+            <p className="text-4xl font-black text-rose-600 dark:text-rose-400 leading-none">
+              {remainingSeconds}s
+            </p>
+          </div>
+        ) : error ? (
+          <p className="text-sm text-rose-600 dark:text-rose-400 font-medium text-center">{error}</p>
+        ) : (
+          <div className="h-[22px]" /> /* spacer to keep layout stable */
+        )}
+
+        {/* Number Pad */}
+        <div className="grid grid-cols-3 gap-2 w-full">
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((num, i) => {
+            if (num === '') return <div key={i} />;
+
+            if (num === 'del') {
+              return (
+                <Button
+                  key={i}
+                  variant="ghost"
+                  size="lg"
+                  type="button"
+                  tabIndex={-1}
+                  disabled={isDisabled}
+                  className="h-16 rounded-2xl text-muted-foreground active:scale-95 active:bg-muted transition-transform focus:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-muted/50 disabled:opacity-30"
+                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(); }}
+                  onPointerUp={(e) => { (e.currentTarget as HTMLElement).blur(); }}
+                  onPointerCancel={(e) => { (e.currentTarget as HTMLElement).blur(); }}
+                >
+                  <Delete className="w-5 h-5" />
+                </Button>
+              );
+            }
+
+            return (
               <Button
-                onClick={handleBiometric}
-                disabled={isAuthenticating}
-                variant="outline"
-                className="w-full h-12"
+                key={i}
+                variant="ghost"
+                size="lg"
+                type="button"
+                tabIndex={-1}
+                disabled={isDisabled}
+                className="h-16 rounded-2xl text-2xl font-black text-foreground active:scale-95 active:bg-primary/10 transition-transform focus:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-muted/50 disabled:opacity-30"
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleNumberClick(num); }}
+                onPointerUp={(e) => { (e.currentTarget as HTMLElement).blur(); }}
+                onPointerCancel={(e) => { (e.currentTarget as HTMLElement).blur(); }}
               >
-                <Fingerprint className="w-5 h-5 mr-2" />
-                Use {biometricType}
+                {num}
               </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            );
+          })}
+        </div>
+
+        {/* Biometric */}
+        {biometricEnabled && biometricType && !lockoutUntil && (
+          <Button
+            onClick={handleBiometric}
+            disabled={isAuthenticating || isDisabled}
+            variant="outline"
+            className="w-full h-12 rounded-2xl border-border font-semibold"
+          >
+            <Fingerprint className="w-5 h-5 mr-2" />
+            Use {biometricType}
+          </Button>
+        )}
+
+      </div>
     </div>
   );
 }
