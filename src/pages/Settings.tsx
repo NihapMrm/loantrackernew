@@ -1,5 +1,6 @@
 ﻿import { useRef, useState } from "react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
+import { LoanTrackerLogo } from "@/components/ui/LoanTrackerLogo";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { useSecurity } from "@/lib/security";
@@ -13,7 +14,6 @@ import {
   CheckCircle,
   Loader2,
   AlertCircle,
-  Wallet,
   Shield,
   Download,
   Lock,
@@ -198,15 +198,14 @@ export default function Settings() {
 
         {/* ── App Profile Header ── */}
         <div className="flex flex-col items-center gap-3 px-4 pt-10 pb-8">
-          <div className="w-20 h-20 rounded-[22px] bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-            <Wallet className="w-10 h-10 text-primary-foreground" />
+          <div className="w-20 h-20 rounded-[22px] overflow-hidden shadow-lg shadow-primary/30 bg-white">
+            <LoanTrackerLogo className="w-full h-full" />
           </div>
           <div className="text-center">
             <h1 className="text-xl font-bold text-foreground">LoanTracker</h1>
             <div className="flex items-center justify-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">Version 2.0.0</span>
+              <span className="text-xs text-muted-foreground">Version 1.0.0</span>
               <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
-              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Offline</span>
             </div>
           </div>
         </div>
