@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSettings } from '@/hooks/useSettings';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useLoan, useCreatePayment, calculateBalance } from '@/hooks/useLoans';
 import { AmountDisplay, LoanTypeBadge, MarqueeAmount } from '@/components/ui/amount-display';
@@ -17,6 +18,7 @@ export default function AddPayment() {
 
   const { data: loan, isLoading } = useLoan(loanId);
   const createPayment = useCreatePayment();
+  const { settings } = useSettings();
 
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -29,7 +31,7 @@ export default function AddPayment() {
     amount: z
       .number()
       .positive('Amount must be greater than 0')
-      .max(balance, `Amount cannot exceed remaining balance of Rs ${balance.toFixed(2)}`),
+      .max(balance, `Amount cannot exceed remaining balance of ${settings.currencySymbol} ${balance.toFixed(2)}`),
     payment_date: z.string().min(1, 'Payment date is required'),
     notes: z.string().trim().max(500, 'Notes are too long').optional(),
   });
@@ -144,7 +146,7 @@ export default function AddPayment() {
                   </Button>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rs</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{settings.currencySymbol}</span>
                   <Input
                     id="amount"
                     type="number"
@@ -154,7 +156,7 @@ export default function AddPayment() {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pl-8"
+                    className="pl-10"
                     autoFocus
                   />
                 </div>

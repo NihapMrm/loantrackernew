@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { useSettings } from '@/hooks/useSettings';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { usePeople, useCreateLoan, useUpdateLoan, useLoan, LoanType } from '@/hooks/useLoans';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -42,6 +43,7 @@ export default function AddLoan() {
   const { data: existingLoan, isLoading: loadingLoan } = useLoan(id);
   const createLoan = useCreateLoan();
   const updateLoan = useUpdateLoan();
+  const { settings } = useSettings();
 
   const [personId, setPersonId] = useState(searchParams.get('person') || '');
   const [accountId, setAccountId] = useState('');
@@ -278,7 +280,7 @@ export default function AddLoan() {
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount *</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rs</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{settings.currencySymbol}</span>
                   <Input
                     id="amount"
                     type="number"
@@ -287,7 +289,7 @@ export default function AddLoan() {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pl-8"
+                    className="pl-10"
                   />
                 </div>
                 {errors.amount && <p className="text-sm text-destructive">{errors.amount}</p>}
