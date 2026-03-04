@@ -27,7 +27,7 @@ export function BottomNav() {
       {/* SVG notch bar background */}
       <div className="relative mx-auto max-w-lg pointer-events-auto">
         {/* bar */}
-<div className="mx-4 mb-4 h-[64px] bg-background border border-border rounded-[28px] shadow-[0_4px_32px_rgba(0,0,0,0.08)] flex items-center relative overflow-visible">
+<div className="mx-4 h-[64px] bg-background border border-border rounded-[28px] shadow-[0_4px_32px_rgba(0,0,0,0.08)] flex items-center relative overflow-visible" style={{ marginBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
 
           {/* left 2 items */}
           <div className="flex flex-1 items-center justify-around h-full">

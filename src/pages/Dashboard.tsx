@@ -109,7 +109,7 @@ export default function Dashboard() {
                   : <div className="mb-1">
                       <MarqueeAmount>
                         <span className="text-3xl lg:text-4xl font-black text-white leading-none">
-                          {net >= 0 ? '+' : ''}<AmountDisplay amount={net} size="lg" className="inline text-inherit" />
+                          {net > 0 ? '+' : ''}<AmountDisplay amount={net} size="lg" className="inline text-inherit" />
                         </span>
                       </MarqueeAmount>
                     </div>

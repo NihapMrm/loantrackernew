@@ -96,7 +96,7 @@ function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <main className={cn('flex-1', showNav && 'pb-20')}>
         <AnimatedRoutes />
       </main>
