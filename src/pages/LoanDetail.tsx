@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useLoan, useDeleteLoan, useDeletePayment, calculateBalance, Payment } from '@/hooks/useLoans';
-import { AmountDisplay, StatusBadge, LoanTypeBadge } from '@/components/ui/amount-display';
+import { AmountDisplay, StatusBadge, LoanTypeBadge, MarqueeAmount } from '@/components/ui/amount-display';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -120,11 +120,11 @@ export default function LoanDetail() {
                     {loan.person?.name || 'Unknown'}
                   </Link>
                 </div>
-                <div className="text-right">
+                <div className="text-right max-w-[160px] min-w-0">
                   <p className="text-xs text-muted-foreground mb-1">
                     {loan.type === 'GIVEN' ? 'Remaining to receive' : 'Remaining to pay'}
                   </p>
-                  <AmountDisplay amount={balance} type={loan.type} size="xl" className="lg:text-2xl" />
+                  <MarqueeAmount><AmountDisplay amount={balance} type={loan.type} size="xl" className="lg:text-2xl" /></MarqueeAmount>
                 </div>
               </div>
 
@@ -242,7 +242,7 @@ function PaymentRow({ payment, onDelete }: { payment: Payment; onDelete: () => v
             )}
           </div>
           <div className="flex items-center gap-2">
-            <AmountDisplay amount={Number(payment.amount)} size="md" className="text-success" />
+            <MarqueeAmount className="max-w-[110px]"><AmountDisplay amount={Number(payment.amount)} size="md" className="text-success" /></MarqueeAmount>
             {showDelete && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

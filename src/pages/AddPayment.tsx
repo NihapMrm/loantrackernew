@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useLoan, useCreatePayment, calculateBalance } from '@/hooks/useLoans';
-import { AmountDisplay, LoanTypeBadge } from '@/components/ui/amount-display';
+import { AmountDisplay, LoanTypeBadge, MarqueeAmount } from '@/components/ui/amount-display';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -113,9 +113,9 @@ export default function AddPayment() {
                   <LoanTypeBadge type={loan.type} />
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right max-w-[140px] min-w-0">
                 <p className="text-xs text-muted-foreground">Remaining</p>
-                <AmountDisplay amount={balance} type={loan.type} size="lg" />
+                <MarqueeAmount><AmountDisplay amount={balance} type={loan.type} size="lg" /></MarqueeAmount>
               </div>
             </div>
           </CardContent>

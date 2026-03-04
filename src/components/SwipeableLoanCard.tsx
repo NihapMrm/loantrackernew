@@ -180,6 +180,19 @@ export function SwipeableLoanCard({
           </>
         ) : (
           <>
+           {/* Pin button — only when onTogglePin is provided */}
+        {onTogglePin && (
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={handlePin}
+            className="flex flex-col items-center justify-center gap-1 flex-1 bg-amber-400 active:bg-amber-500 text-white text-xs font-semibold select-none"
+          >
+            {isPinned
+              ? <><PinOff className="w-5 h-5" strokeWidth={2.5} /><span>Unpin</span></>
+              : <><Pin className="w-5 h-5" strokeWidth={2.5} /><span>Pin</span></>
+            }
+          </button>
+        )}
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onClick={handleAddPayment}
@@ -198,19 +211,7 @@ export function SwipeableLoanCard({
             </button>
           </>
         )}
-        {/* Pin button — only when onTogglePin is provided */}
-        {onTogglePin && (
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={handlePin}
-            className="flex flex-col items-center justify-center gap-1 flex-1 bg-amber-400 active:bg-amber-500 text-white text-xs font-semibold select-none"
-          >
-            {isPinned
-              ? <><PinOff className="w-5 h-5" strokeWidth={2.5} /><span>Unpin</span></>
-              : <><Pin className="w-5 h-5" strokeWidth={2.5} /><span>Pin</span></>
-            }
-          </button>
-        )}
+       
       </div>
 
       {/* ── Sliding card surface ── */}
@@ -231,7 +232,6 @@ export function SwipeableLoanCard({
             exit={{ opacity: 0 }}
             className="absolute right-2 top-2 pointer-events-none z-20"
           >
-            <ChevronsLeft className="w-4 h-4 text-muted-foreground/40" />
           </motion.div>
         )}
       </motion.div>

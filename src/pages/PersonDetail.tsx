@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { usePerson, useLoansByPerson, useDeletePerson, calculateBalance, Loan, useCreatePayment, useResetLoanPayments, useDeleteLastPayment } from '@/hooks/useLoans';
-import { AmountDisplay, StatusBadge, LoanTypeBadge } from '@/components/ui/amount-display';
+import { AmountDisplay, StatusBadge, LoanTypeBadge, MarqueeAmount } from '@/components/ui/amount-display';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -178,13 +178,13 @@ export default function PersonDetail() {
           <Card className="bg-loan-given-light border-0 shadow-sm">
             <CardContent className="p-4 text-center lg:p-6">
               <p className="text-xs lg:text-sm font-medium text-loan-given-foreground mb-1">To Receive</p>
-              <AmountDisplay amount={toReceive} size="lg" className="text-loan-given lg:text-2xl" />
+              <MarqueeAmount><AmountDisplay amount={toReceive} size="lg" className="text-loan-given lg:text-2xl" /></MarqueeAmount>
             </CardContent>
           </Card>
           <Card className="bg-loan-taken-light border-0 shadow-sm">
             <CardContent className="p-4 text-center lg:p-6">
               <p className="text-xs lg:text-sm font-medium text-loan-taken-foreground mb-1">To Pay</p>
-              <AmountDisplay amount={toPay} size="lg" className="text-loan-taken lg:text-2xl" />
+              <MarqueeAmount><AmountDisplay amount={toPay} size="lg" className="text-loan-taken lg:text-2xl" /></MarqueeAmount>
             </CardContent>
           </Card>
         </div>
@@ -255,12 +255,12 @@ function LoanCard({ loan }: { loan: Loan }) {
                 {loan.due_date && ` • Due ${format(new Date(loan.due_date), 'MMM d')}`}
               </p>
             </div>
-            <div className="text-right">
-              <AmountDisplay amount={balance} type={loan.type} size="md" />
+            <div className="text-right max-w-[130px] min-w-0">
+              <MarqueeAmount><AmountDisplay amount={balance} type={loan.type} size="md" /></MarqueeAmount>
               {loan.status !== 'OPEN' && (
-                <p className="text-xs text-muted-foreground">
-                  of <AmountDisplay amount={Number(loan.amount)} size="sm" />
-                </p>
+                <div className="text-xs text-muted-foreground">
+                  of <MarqueeAmount className="inline-block max-w-[90px]"><AmountDisplay amount={Number(loan.amount)} size="sm" /></MarqueeAmount>
+                </div>
               )}
             </div>
           </div>

@@ -138,7 +138,7 @@ const App = () => (
     <SecurityProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-center"/>
         <AppContent />
       </TooltipProvider>
     </SecurityProvider>

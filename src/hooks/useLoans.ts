@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, generateId, nowISO } from '@/lib/db';
 import { toast } from 'sonner';
 import type { Account } from '@/hooks/useAccounts';

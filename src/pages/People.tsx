@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { usePeople, useLoans, calculateTotals, calculateBalance, Person } from '@/hooks/useLoans';
-import { AmountDisplay } from '@/components/ui/amount-display';
+import { AmountDisplay, MarqueeAmount } from '@/components/ui/amount-display';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -131,23 +131,27 @@ function PersonCard({ person }: { person: PersonWithBalance }) {
             </div>
 
             {/* Balance */}
-            <div className="text-right flex-shrink-0">
+            <div className="text-right max-w-[110px] min-w-0">
               {hasBalance ? (
                 <>
                   {person.toReceive > 0 && (
-                    <AmountDisplay 
-                      amount={person.toReceive} 
-                      type="GIVEN" 
-                      size="sm"
-                    />
+                    <MarqueeAmount>
+                      <AmountDisplay 
+                        amount={person.toReceive} 
+                        type="GIVEN" 
+                        size="sm"
+                      />
+                    </MarqueeAmount>
                   )}
                   {person.toPay > 0 && (
-                    <AmountDisplay 
-                      amount={person.toPay} 
-                      type="TAKEN" 
-                      size="sm"
-                      className="block"
-                    />
+                    <MarqueeAmount>
+                      <AmountDisplay 
+                        amount={person.toPay} 
+                        type="TAKEN" 
+                        size="sm"
+                        className="block"
+                      />
+                    </MarqueeAmount>
                   )}
                 </>
               ) : (

@@ -4,7 +4,7 @@ import { useAccount } from '@/hooks/useAccounts';
 import { useLoans, calculateBalance, Loan, useCreatePayment, useResetLoanPayments, useDeleteLastPayment } from '@/hooks/useLoans';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AmountDisplay, StatusBadge } from '@/components/ui/amount-display';
+import { AmountDisplay, StatusBadge, MarqueeAmount } from '@/components/ui/amount-display';
 import { ArrowLeft, User, Calendar } from 'lucide-react';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
@@ -117,7 +117,7 @@ export default function AccountDetail() {
         <Card className="shadow-card mb-6">
           <CardContent className="p-4 lg:p-6">
             <p className="text-sm lg:text-base text-muted-foreground mb-1">Total to Receive</p>
-            <AmountDisplay amount={totalToReceive} size="xl" type="GIVEN" className="lg:text-3xl" />
+            <MarqueeAmount><AmountDisplay amount={totalToReceive} size="xl" type="GIVEN" className="lg:text-3xl" /></MarqueeAmount>
             <p className="text-xs lg:text-sm text-muted-foreground mt-2">
               From {accountLoans.length} outstanding {accountLoans.length === 1 ? 'loan' : 'loans'}
             </p>
@@ -182,12 +182,12 @@ function AccountLoanCard({ loan }: { loan: Loan }) {
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <AmountDisplay amount={balance} size="md" type="GIVEN" />
+            <div className="text-right max-w-[130px] min-w-0">
+              <MarqueeAmount><AmountDisplay amount={balance} size="md" type="GIVEN" /></MarqueeAmount>
               {balance < loan.amount && (
-                <p className="text-xs text-muted-foreground">
-                  of <AmountDisplay amount={loan.amount} size="sm" />
-                </p>
+                <div className="text-xs text-muted-foreground">
+                  of <MarqueeAmount className="inline-block max-w-[90px]"><AmountDisplay amount={loan.amount} size="sm" /></MarqueeAmount>
+                </div>
               )}
             </div>
           </div>
