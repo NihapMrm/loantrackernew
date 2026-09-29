@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:508017051736:android:459a572226100d5374a22d",
         "android_client_info": {
-          "package_name": "com.loantracker.app"
+          "package_name": "com.nihap.loantracker"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "508017051736-1mi171chg064u81kegpq3rlmenj3p3aq.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.loantracker.app",
+            "package_name": "com.nihap.loantracker",
             "certificate_hash": "199087345e80ec54dca690ce2dbadf5956ffad81"
           }
         },

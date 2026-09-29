@@ -26,3 +26,7 @@ dist-ssr
 # Firebase
 firebase-service-account.json
 migrate-supabase-to-firebase.js
+
+# Keystore — never commit this
+*.jks
+*.keystore

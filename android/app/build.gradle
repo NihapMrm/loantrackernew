@@ -1,10 +1,18 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.loantracker.app"
+    namespace = "com.nihap.loantracker"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            storeFile file("../../loantracker-release.jks")
+            storePassword project.findProperty("LOANTRACKER_STORE_PASSWORD") ?: ""
+            keyAlias project.findProperty("LOANTRACKER_KEY_ALIAS") ?: ""
+            keyPassword project.findProperty("LOANTRACKER_KEY_PASSWORD") ?: ""
+        }
+    }
     defaultConfig {
-        applicationId "com.loantracker.app"
+        applicationId "com.nihap.loantracker"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -18,6 +26,7 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

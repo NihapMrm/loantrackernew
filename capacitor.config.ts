@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.loantracker.app',
+  appId: 'com.nihap.loantracker',
   appName: 'LoanTracker',
   webDir: 'dist',
   plugins: {

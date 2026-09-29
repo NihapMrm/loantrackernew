@@ -1,4 +1,4 @@
-package com.loantracker.app;
+package com.nihap.loantracker;
 
 import android.os.Bundle;
 import android.view.View;

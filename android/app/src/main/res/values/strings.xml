@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">LoanTracker</string>
     <string name="title_activity_main">LoanTracker</string>
-    <string name="package_name">com.loantracker.app</string>
-    <string name="custom_url_scheme">com.loantracker.app</string>
+    <string name="package_name">com.nihap.loantracker</string>
+    <string name="custom_url_scheme">com.nihap.loantracker</string>
     <string name="server_client_id">508017051736-qpvdc2778cbak57qvshachq2cdoqn9l2.apps.googleusercontent.com</string>
 </resources>
