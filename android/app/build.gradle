@@ -1,14 +1,21 @@
 apply plugin: 'com.android.application'
 
+def localProps = new Properties()
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localProps.load(new FileInputStream(localPropsFile))
+}
+def signingProp = { name -> localProps.getProperty(name) ?: project.findProperty(name) ?: "" }
+
 android {
     namespace = "com.nihap.loantracker"
     compileSdk = rootProject.ext.compileSdkVersion
     signingConfigs {
         release {
             storeFile file("../../loantracker-release.jks")
-            storePassword project.findProperty("LOANTRACKER_STORE_PASSWORD") ?: ""
-            keyAlias project.findProperty("LOANTRACKER_KEY_ALIAS") ?: ""
-            keyPassword project.findProperty("LOANTRACKER_KEY_PASSWORD") ?: ""
+            storePassword signingProp("LOANTRACKER_STORE_PASSWORD")
+            keyAlias signingProp("LOANTRACKER_KEY_ALIAS")
+            keyPassword signingProp("LOANTRACKER_KEY_PASSWORD")
         }
     }
     defaultConfig {
