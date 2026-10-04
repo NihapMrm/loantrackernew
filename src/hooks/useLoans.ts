@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db, generateId, nowISO } from '@/lib/db';
+import { db, generateId, nowISO, todayISODate } from '@/lib/db';
 import { toast } from 'sonner';
 import type { Account } from '@/hooks/useAccounts';
 
@@ -41,6 +41,22 @@ export interface Payment {
 }
 
 const toDate = (s: string | null | undefined): Date => s ? new Date(s) : new Date();
+
+/** Status rule shared by every payment/amount change */
+export function deriveStatus(amount: number, totalPaid: number): LoanStatus {
+  if (totalPaid >= Number(amount)) return 'PAID';
+  if (totalPaid > 0) return 'PARTIAL';
+  return 'OPEN';
+}
+
+/** Re-read a loan's payments and store the matching status */
+async function recalcStatus(loanId: string) {
+  const loan = await db.loans.get(loanId);
+  if (!loan) return;
+  const payments = await db.payments.where('loan_id').equals(loanId).toArray();
+  const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+  await db.loans.update(loanId, { status: deriveStatus(loan.amount, totalPaid), updated_at: nowISO() });
+}
 
 // ===== PEOPLE HOOKS =====
 
@@ -119,7 +135,13 @@ export function useDeletePerson() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await db.people.delete(id);
+      // Cascade: a person's loans and their payments go with them
+      await db.transaction('rw', db.people, db.loans, db.payments, async () => {
+        const loanIds = await db.loans.where('person_id').equals(id).primaryKeys();
+        await db.payments.where('loan_id').anyOf(loanIds).delete();
+        await db.loans.bulkDelete(loanIds);
+        await db.people.delete(id);
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
@@ -132,23 +154,37 @@ export function useDeletePerson() {
 
 // ===== LOANS HOOKS =====
 
-async function enrichLoan(loan: any): Promise<Loan> {
-  const person = loan.person_id ? await db.people.get(loan.person_id) : undefined;
-  const accountRow = loan.account_id ? await db.accounts.get(loan.account_id) : undefined;
-  const payments = await db.payments.where('loan_id').equals(loan.id).toArray();
-  return {
-    ...loan,
-    created_at: toDate(loan.created_at),
-    updated_at: toDate(loan.updated_at),
-    due_date: loan.due_date ? new Date(loan.due_date) : null,
-    person: person ? { ...person, created_at: toDate(person.created_at), updated_at: toDate(person.updated_at) } : undefined,
-    account: accountRow ? { ...accountRow, created_at: toDate(accountRow.created_at), updated_at: toDate(accountRow.updated_at) } as Account : undefined,
-    payments: payments.map(p => ({
-      ...p,
-      payment_date: toDate(p.payment_date),
-      created_at: toDate(p.created_at),
-    })),
-  };
+type LoanRowLike = { id: string; person_id: string; account_id: string | null; due_date: string | null; created_at: string; updated_at: string };
+
+/** Join loans with their person, account and payments using one bulk read per table */
+async function enrichLoans(loans: LoanRowLike[]): Promise<Loan[]> {
+  const ids = loans.map(l => l.id);
+  const [people, accounts, payments] = await Promise.all([
+    db.people.bulkGet([...new Set(loans.map(l => l.person_id))]),
+    db.accounts.bulkGet([...new Set(loans.map(l => l.account_id).filter((x): x is string => !!x))]),
+    db.payments.where('loan_id').anyOf(ids).toArray(),
+  ]);
+  const personById = new Map(people.filter(Boolean).map(p => [p!.id, p!]));
+  const accountById = new Map(accounts.filter(Boolean).map(a => [a!.id, a!]));
+  const paymentsByLoan = new Map<string, Payment[]>();
+  for (const p of payments) {
+    const list = paymentsByLoan.get(p.loan_id) ?? [];
+    list.push({ ...p, payment_date: toDate(p.payment_date), created_at: toDate(p.created_at) });
+    paymentsByLoan.set(p.loan_id, list);
+  }
+  return loans.map(loan => {
+    const person = personById.get(loan.person_id);
+    const accountRow = loan.account_id ? accountById.get(loan.account_id) : undefined;
+    return {
+      ...loan,
+      created_at: toDate(loan.created_at),
+      updated_at: toDate(loan.updated_at),
+      due_date: loan.due_date ? new Date(loan.due_date) : null,
+      person: person ? { ...person, created_at: toDate(person.created_at), updated_at: toDate(person.updated_at) } : undefined,
+      account: accountRow ? { ...accountRow, created_at: toDate(accountRow.created_at), updated_at: toDate(accountRow.updated_at) } as Account : undefined,
+      payments: paymentsByLoan.get(loan.id) ?? [],
+    } as Loan;
+  });
 }
 
 export function useLoans() {
@@ -156,7 +192,7 @@ export function useLoans() {
     queryKey: ['loans'],
     queryFn: async () => {
       const loans = await db.loans.orderBy('created_at').reverse().toArray();
-      return Promise.all(loans.map(enrichLoan));
+      return enrichLoans(loans);
     },
   });
 }
@@ -167,7 +203,7 @@ export function useLoansByPerson(personId: string | undefined) {
     queryFn: async () => {
       if (!personId) return [];
       const loans = await db.loans.where('person_id').equals(personId).reverse().sortBy('created_at');
-      return Promise.all(loans.map(enrichLoan));
+      return enrichLoans(loans);
     },
     enabled: !!personId,
   });
@@ -180,7 +216,7 @@ export function useLoan(id: string | undefined) {
       if (!id) return null;
       const loan = await db.loans.get(id);
       if (!loan) return null;
-      return enrichLoan(loan);
+      return (await enrichLoans([loan]))[0];
     },
     enabled: !!id,
   });
@@ -227,14 +263,18 @@ export function useUpdateLoan() {
     mutationFn: async ({ id, ...data }: {
       id: string;
       amount?: number;
+      account_id?: string | null;
       due_date?: string | null;
       notes?: string | null;
     }) => {
-      const updates: any = { updated_at: nowISO() };
+      const updates: Record<string, unknown> = { updated_at: nowISO() };
       if (data.amount !== undefined) updates.amount = data.amount;
+      if (data.account_id !== undefined) updates.account_id = data.account_id || null;
       if (data.due_date !== undefined) updates.due_date = data.due_date || null;
       if (data.notes !== undefined) updates.notes = data.notes?.trim() || null;
       await db.loans.update(id, updates);
+      // Amount may have moved past (or below) what's already paid
+      if (data.amount !== undefined) await recalcStatus(id);
     },
     onSuccess: (_, v) => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
@@ -249,8 +289,10 @@ export function useDeleteLoan() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await db.loans.delete(id);
-      await db.payments.where('loan_id').equals(id).delete();
+      await db.transaction('rw', db.loans, db.payments, async () => {
+        await db.payments.where('loan_id').equals(id).delete();
+        await db.loans.delete(id);
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
@@ -276,23 +318,12 @@ export function useCreatePayment() {
         id: generateId(),
         loan_id: data.loan_id,
         amount: data.amount,
-        payment_date: data.payment_date || now,
+        payment_date: data.payment_date || todayISODate(),
         notes: data.notes?.trim() || null,
         created_at: now,
       };
       await db.payments.add(payment);
-
-      // Update loan status
-      const allPayments = await db.payments.where('loan_id').equals(data.loan_id).toArray();
-      const loan = await db.loans.get(data.loan_id);
-      if (loan) {
-        const totalPaid = allPayments.reduce((s, p) => s + Number(p.amount), 0);
-        let status: LoanStatus = 'OPEN';
-        if (totalPaid >= Number(loan.amount)) status = 'PAID';
-        else if (totalPaid > 0) status = 'PARTIAL';
-        await db.loans.update(data.loan_id, { status, updated_at: now });
-      }
-
+      await recalcStatus(data.loan_id);
       return payment;
     },
     onSuccess: () => {
@@ -310,20 +341,7 @@ export function useDeletePayment() {
     mutationFn: async (id: string) => {
       const payment = await db.payments.get(id);
       await db.payments.delete(id);
-
-      // Recalculate loan status
-      if (payment) {
-        const now = nowISO();
-        const remaining = await db.payments.where('loan_id').equals(payment.loan_id).toArray();
-        const loan = await db.loans.get(payment.loan_id);
-        if (loan) {
-          const totalPaid = remaining.reduce((s, p) => s + Number(p.amount), 0);
-          let status: LoanStatus = 'OPEN';
-          if (totalPaid >= Number(loan.amount)) status = 'PAID';
-          else if (totalPaid > 0) status = 'PARTIAL';
-          await db.loans.update(payment.loan_id, { status, updated_at: now });
-        }
-      }
+      if (payment) await recalcStatus(payment.loan_id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
@@ -357,21 +375,10 @@ export function useDeleteLastPayment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (loanId: string) => {
-      const now = nowISO();
       const payments = await db.payments.where('loan_id').equals(loanId).sortBy('created_at');
       if (!payments.length) return;
-      const last = payments[payments.length - 1];
-      await db.payments.delete(last.id);
-
-      const remaining = await db.payments.where('loan_id').equals(loanId).toArray();
-      const loan = await db.loans.get(loanId);
-      if (loan) {
-        const totalPaid = remaining.reduce((s, p) => s + Number(p.amount), 0);
-        let status: LoanStatus = 'OPEN';
-        if (totalPaid >= Number(loan.amount)) status = 'PAID';
-        else if (totalPaid > 0) status = 'PARTIAL';
-        await db.loans.update(loanId, { status, updated_at: now });
-      }
+      await db.payments.delete(payments[payments.length - 1].id);
+      await recalcStatus(loanId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });

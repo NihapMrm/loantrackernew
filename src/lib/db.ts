@@ -1,9 +1,12 @@
 import Dexie, { Table } from 'dexie';
 
+// Raw row shapes as stored in IndexedDB (dates are ISO strings).
+// The enriched, Date-typed versions used by the UI live in hooks/useLoans.ts and hooks/useAccounts.ts.
+
 export type LoanType = 'GIVEN' | 'TAKEN';
 export type LoanStatus = 'OPEN' | 'PARTIAL' | 'PAID';
 
-export interface Person {
+export interface PersonRow {
   id: string;
   name: string;
   phone: string | null;
@@ -12,7 +15,7 @@ export interface Person {
   updated_at: string;
 }
 
-export interface Account {
+export interface AccountRow {
   id: string;
   name: string;
   description: string | null;
@@ -21,7 +24,7 @@ export interface Account {
   updated_at: string;
 }
 
-export interface Loan {
+export interface LoanRow {
   id: string;
   person_id: string;
   account_id: string | null;
@@ -34,7 +37,7 @@ export interface Loan {
   updated_at: string;
 }
 
-export interface Payment {
+export interface PaymentRow {
   id: string;
   loan_id: string;
   amount: number;
@@ -44,10 +47,10 @@ export interface Payment {
 }
 
 class LoanTrackerDB extends Dexie {
-  people!: Table<Person, string>;
-  accounts!: Table<Account, string>;
-  loans!: Table<Loan, string>;
-  payments!: Table<Payment, string>;
+  people!: Table<PersonRow, string>;
+  accounts!: Table<AccountRow, string>;
+  loans!: Table<LoanRow, string>;
+  payments!: Table<PaymentRow, string>;
 
   constructor() {
     super('LoanTrackerDB');
@@ -69,4 +72,10 @@ export function generateId(): string {
 
 export function nowISO(): string {
   return new Date().toISOString();
+}
+
+/** Today's date as yyyy-MM-dd in local time (the format <input type="date"> uses) */
+export function todayISODate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

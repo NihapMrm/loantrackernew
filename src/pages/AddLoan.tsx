@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Wallet, PiggyBank, Landmark, CreditCard, Banknote, Building2 } from 'lucide-react';
 import { z } from 'zod';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -61,7 +62,7 @@ export default function AddLoan() {
       setAccountId(existingLoan.account_id || '');
       setAmount(String(existingLoan.amount));
       setType(existingLoan.type);
-      setDueDate(existingLoan.due_date || '');
+      setDueDate(existingLoan.due_date ? format(existingLoan.due_date, 'yyyy-MM-dd') : '');
       setNotes(existingLoan.notes || '');
       setInitialized(true);
     }
@@ -87,6 +88,7 @@ export default function AddLoan() {
         await updateLoan.mutateAsync({ 
           id, 
           amount: data.amount,
+          account_id: accountId || null,
           due_date: data.due_date || null,
           notes: data.notes || null,
         });

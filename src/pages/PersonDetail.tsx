@@ -1,3 +1,4 @@
+import { todayISODate } from '@/lib/db';
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
@@ -62,7 +63,7 @@ export default function PersonDetail() {
     await createPayment.mutateAsync({
       loan_id: loan.id,
       amount: remainingAmount,
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: todayISODate(),
       notes: 'Marked as paid',
     });
 

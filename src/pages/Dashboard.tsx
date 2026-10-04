@@ -1,3 +1,4 @@
+import { todayISODate } from '@/lib/db';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useLoans, calculateTotals, calculateBalance, Loan, useCreatePayment, useResetLoanPayments, useDeleteLastPayment } from '@/hooks/useLoans';
@@ -52,7 +53,7 @@ export default function Dashboard() {
     await createPayment.mutateAsync({
       loan_id: loan.id,
       amount: remainingAmount,
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: todayISODate(),
       notes: 'Marked as paid',
     });
 

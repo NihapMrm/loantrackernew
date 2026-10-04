@@ -5,10 +5,6 @@ const config: CapacitorConfig = {
   appName: 'LoanTracker',
   webDir: 'dist',
   plugins: {
-    FirebaseAuthentication: {
-      skipNativeAuth: false,
-      providers: ['google.com'],
-    },
     SplashScreen: {
       launchAutoHide: false,
       launchShowDuration: 0,

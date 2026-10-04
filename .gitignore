@@ -30,3 +30,7 @@ migrate-supabase-to-firebase.js
 # Keystore — never commit this
 *.jks
 *.keystore
+
+# Env files
+.env
+.env.*

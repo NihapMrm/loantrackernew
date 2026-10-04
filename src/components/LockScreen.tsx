@@ -4,6 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Lock, Fingerprint, Delete } from 'lucide-react';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
+const LOCKOUT_KEY = 'app_lockout_until';
+
+// Persisted so restarting the app doesn't reset the lockout
+function readLockout(): number | null {
+  const t = Number(localStorage.getItem(LOCKOUT_KEY));
+  return t > Date.now() ? t : null;
+}
+
 export function LockScreen() {
   const { authenticate, authenticateWithBiometric, biometricEnabled, biometricType, verifyPIN } = useSecurity();
   const [pin, setPin] = useState('');
@@ -12,7 +20,7 @@ export function LockScreen() {
   const [shake, setShake] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(readLockout);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
 
   const MAX_ATTEMPTS = 3;
@@ -32,6 +40,7 @@ export function LockScreen() {
     const interval = setInterval(() => {
       const now = Date.now();
       if (now >= lockoutUntil) {
+        localStorage.removeItem(LOCKOUT_KEY);
         setLockoutUntil(null);
         setFailedAttempts(0);
         setRemainingSeconds(0);
@@ -105,6 +114,7 @@ export function LockScreen() {
       // Check if we need to apply lockout
       if (newFailedAttempts >= MAX_ATTEMPTS) {
         const lockoutTime = Date.now() + (LOCKOUT_DURATION * 1000);
+        localStorage.setItem(LOCKOUT_KEY, String(lockoutTime));
         setLockoutUntil(lockoutTime);
         setRemainingSeconds(LOCKOUT_DURATION);
         setError(`Too many attempts. Wait ${LOCKOUT_DURATION} seconds.`);
@@ -114,6 +124,7 @@ export function LockScreen() {
     } else {
       // Reset failed attempts on success
       setFailedAttempts(0);
+      localStorage.removeItem(LOCKOUT_KEY);
       setLockoutUntil(null);
       
       // Success haptic feedback

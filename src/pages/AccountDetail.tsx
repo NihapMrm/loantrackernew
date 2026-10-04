@@ -1,3 +1,4 @@
+import { todayISODate } from '@/lib/db';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAccount } from '@/hooks/useAccounts';
@@ -41,7 +42,7 @@ export default function AccountDetail() {
     await createPayment.mutateAsync({
       loan_id: loan.id,
       amount: remainingAmount,
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: todayISODate(),
       notes: 'Marked as paid',
     });
     confetti({

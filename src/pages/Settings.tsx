@@ -30,6 +30,7 @@ import {
   Database,
 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +53,22 @@ import { useSettings, AppSettings } from "@/hooks/useSettings";
 import { formatAmount, formatDate } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 
+const iso = z.string().min(1);
+const nullStr = z.string().nullable().optional().transform(v => v ?? null);
+const importSchema = z.object({
+  people: z.array(z.object({ id: z.string().min(1), name: z.string().min(1), phone: nullStr, notes: nullStr, created_at: iso, updated_at: iso }).passthrough()),
+  accounts: z.array(z.object({ id: z.string().min(1), name: z.string().min(1), description: nullStr, icon: z.string().default('wallet'), created_at: iso, updated_at: iso }).passthrough()).default([]),
+  loans: z.array(z.object({
+    id: z.string().min(1), person_id: z.string().min(1), account_id: nullStr,
+    amount: z.number().positive(), type: z.enum(['GIVEN', 'TAKEN']), status: z.enum(['OPEN', 'PARTIAL', 'PAID']),
+    due_date: nullStr, notes: nullStr, created_at: iso, updated_at: iso,
+  }).passthrough()),
+  payments: z.array(z.object({
+    id: z.string().min(1), loan_id: z.string().min(1), amount: z.number().positive(),
+    payment_date: iso, notes: nullStr, created_at: iso,
+  }).passthrough()),
+});
+
 interface ImportData {
   version: number;
   exportedAt: string;
@@ -72,21 +89,27 @@ export default function Settings() {
   } | null>(null);
   const [importError, setImportError] = useState("");
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // File picked -> wait for the user to confirm before replacing anything
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
+  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPendingFile(e.target.files?.[0] ?? null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleImport = async (file: File) => {
     setImporting(true);
     setImportResult(null);
     setImportError("");
 
     try {
       const text = await file.text();
-      const data: ImportData = JSON.parse(text);
-
-      if (!data.people || !data.loans || !data.payments) {
-        throw new Error("Invalid export file format.");
+      const parsed = importSchema.safeParse(JSON.parse(text));
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        throw new Error(`Invalid backup file (${issue.path.join(".")}: ${issue.message}).`);
       }
+      const data = parsed.data as ImportData;
 
       // Strip user_id before importing (not needed offline)
       const strip = (obj: any) => {
@@ -120,7 +143,6 @@ export default function Settings() {
       toast.error("Import failed: " + (err.message || "Unknown error"));
     } finally {
       setImporting(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -282,7 +304,23 @@ export default function Settings() {
               <p className="text-sm text-rose-700 dark:text-rose-400">{importError}</p>
             </div>
           )}
-          <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} />
+          <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFilePicked} />
+          <AlertDialog open={!!pendingFile} onOpenChange={(o) => !o && setPendingFile(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Replace all data?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Importing "{pendingFile?.name}" will delete everything currently on this device and replace it with the backup. Export first if you want to keep your current data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => { const f = pendingFile; setPendingFile(null); if (f) handleImport(f); }}>
+                  Replace
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* ── Security Section ── */}
           {Capacitor.isNativePlatform() && <SecuritySection />}

@@ -88,7 +88,11 @@ export function useDeleteAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await db.accounts.delete(id);
+      // Unlink loans so none point at a missing account
+      await db.transaction('rw', db.accounts, db.loans, async () => {
+        await db.loans.where('account_id').equals(id).modify({ account_id: null });
+        await db.accounts.delete(id);
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });

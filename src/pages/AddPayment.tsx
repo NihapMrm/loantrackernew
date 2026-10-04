@@ -1,3 +1,4 @@
+import { todayISODate } from '@/lib/db';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSettings } from '@/hooks/useSettings';
@@ -21,7 +22,7 @@ export default function AddPayment() {
   const { settings } = useSettings();
 
   const [amount, setAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState(todayISODate());
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
