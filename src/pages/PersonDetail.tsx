@@ -19,7 +19,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Edit, Trash2, Plus, Phone, FileText } from 'lucide-react';
-import { format } from 'date-fns';
 import { formatDate } from '@/lib/formatting';
 import confetti from 'canvas-confetti';
 import { SwipeableLoanCard, useSwipeOpen } from '@/components/SwipeableLoanCard';
@@ -255,7 +254,7 @@ function LoanCard({ loan }: { loan: Loan }) {
                 <StatusBadge status={loan.status} />
               </div>
               <p className="text-sm text-muted-foreground">
-                {format(new Date(loan.created_at), 'MMM d, yyyy')}
+                {formatDate(loan.created_at)}
                 {loan.due_date && ` • Due ${formatDate(loan.due_date)}`}
               </p>
             </div>

@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { db, todayISODate, PersonRow, AccountRow, LoanRow, PaymentRow } from '@/lib/db';
-import { deriveStatus } from '@/hooks/useLoans';
+import { db, todayISODate, roundMoney, deriveStatus, normalizePaymentDate, PersonRow, AccountRow, LoanRow, PaymentRow } from '@/lib/db';
 import { getSettings } from '@/hooks/useSettings';
 
 // ===== Backup file format =====
@@ -39,11 +38,6 @@ export interface ImportReport {
   fixedStatuses: number;     // loans whose stored status didn't match their payments
 }
 
-/** Midnight-UTC timestamps written by older versions are really calendar days */
-function normalizePaymentDate(s: string): string {
-  return /^\d{4}-\d{2}-\d{2}T00:00:00(\.0+)?Z$/.test(s) ? s.slice(0, 10) : s;
-}
-
 /**
  * Validate a parsed backup and repair what can be repaired: rows that point at missing
  * records are dropped (or unlinked) and every loan status is recomputed from its payments.
@@ -71,7 +65,7 @@ export function prepareImport(raw: unknown): { tables: BackupTables; report: Imp
   const loans: LoanRow[] = [];
   for (const l of data.loans) {
     if (!personIds.has(l.person_id)) { report.droppedLoans++; continue; }
-    const loan = strip(l) as LoanRow;
+    const loan = { ...strip(l), amount: roundMoney(l.amount) } as LoanRow;
     if (loan.account_id && !accountIds.has(loan.account_id)) {
       loan.account_id = null;
       report.clearedAccounts++;
@@ -83,7 +77,7 @@ export function prepareImport(raw: unknown): { tables: BackupTables; report: Imp
   const payments: PaymentRow[] = [];
   for (const p of data.payments) {
     if (!p.loan_id || !loanIds.has(p.loan_id)) { report.droppedPayments++; continue; }
-    payments.push({ ...strip(p), payment_date: normalizePaymentDate(p.payment_date) } as PaymentRow);
+    payments.push({ ...strip(p), amount: roundMoney(p.amount), payment_date: normalizePaymentDate(p.payment_date) } as PaymentRow);
   }
 
   const paidByLoan = new Map<string, number>();

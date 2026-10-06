@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db, generateId, nowISO, todayISODate, parseLocalDate } from '@/lib/db';
+import { db, generateId, nowISO, todayISODate, parseLocalDate, roundMoney, deriveStatus, PaymentRow } from '@/lib/db';
+import { unpinLoans, prunePinnedLoans } from '@/hooks/usePinnedLoans';
 import { toast } from 'sonner';
 import type { Account } from '@/hooks/useAccounts';
 
@@ -40,14 +41,10 @@ export interface Payment {
   created_at: Date;
 }
 
-const toDate = (s: string | null | undefined): Date => s ? new Date(s) : new Date();
+// A missing timestamp becomes an Invalid Date (shown as "—"), never a made-up "now"
+const toDate = (s: string | null | undefined): Date => s ? new Date(s) : new Date(NaN);
 
-/** Status rule shared by every payment/amount change */
-export function deriveStatus(amount: number, totalPaid: number): LoanStatus {
-  if (totalPaid >= Number(amount)) return 'PAID';
-  if (totalPaid > 0) return 'PARTIAL';
-  return 'OPEN';
-}
+export { deriveStatus };
 
 /** Re-read a loan's payments and store the matching status. Call inside the write's transaction. */
 export async function recalcStatus(loanId: string) {
@@ -136,14 +133,18 @@ export function useDeletePerson() {
   return useMutation({
     mutationFn: async (id: string) => {
       // Cascade: a person's loans and their payments go with them
-      await db.transaction('rw', db.people, db.loans, db.payments, async () => {
+      return db.transaction('rw', db.people, db.loans, db.payments, async () => {
         const loanIds = await db.loans.where('person_id').equals(id).primaryKeys();
         await db.payments.where('loan_id').anyOf(loanIds).delete();
         await db.loans.bulkDelete(loanIds);
         await db.people.delete(id);
+        return loanIds;
       });
     },
-    onSuccess: () => {
+    onSuccess: (loanIds, id) => {
+      unpinLoans(loanIds);
+      queryClient.removeQueries({ queryKey: ['person', id] });
+      loanIds.forEach(loanId => queryClient.removeQueries({ queryKey: ['loan', loanId] }));
       queryClient.invalidateQueries({ queryKey: ['people'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       toast.success('Person deleted');
@@ -192,6 +193,7 @@ export function useLoans() {
     queryKey: ['loans'],
     queryFn: async () => {
       const loans = await db.loans.orderBy('created_at').reverse().toArray();
+      prunePinnedLoans(new Set(loans.map(l => l.id)));
       return enrichLoans(loans);
     },
   });
@@ -237,7 +239,7 @@ export function useCreateLoan() {
       const loan = {
         id: generateId(),
         person_id: data.person_id,
-        amount: data.amount,
+        amount: roundMoney(data.amount),
         type: data.type,
         status: 'OPEN' as LoanStatus,
         account_id: data.account_id || null,
@@ -268,7 +270,7 @@ export function useUpdateLoan() {
       notes?: string | null;
     }) => {
       const updates: Record<string, unknown> = { updated_at: nowISO() };
-      if (data.amount !== undefined) updates.amount = data.amount;
+      if (data.amount !== undefined) updates.amount = roundMoney(data.amount);
       if (data.account_id !== undefined) updates.account_id = data.account_id || null;
       if (data.due_date !== undefined) updates.due_date = data.due_date || null;
       if (data.notes !== undefined) updates.notes = data.notes?.trim() || null;
@@ -296,7 +298,9 @@ export function useDeleteLoan() {
         await db.loans.delete(id);
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      unpinLoans([id]);
+      queryClient.removeQueries({ queryKey: ['loan', id] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       toast.success('Loan deleted');
     },
@@ -319,7 +323,7 @@ export function useCreatePayment() {
       const payment = {
         id: generateId(),
         loan_id: data.loan_id,
-        amount: data.amount,
+        amount: roundMoney(data.amount),
         payment_date: data.payment_date || todayISODate(),
         notes: data.notes?.trim() || null,
         created_at: now,
@@ -358,56 +362,73 @@ export function useDeletePayment() {
   });
 }
 
-/** Delete all payments for a loan → resets status to OPEN */
-export function useResetLoanPayments() {
+/** Put back payments removed by a swipe action (the toast's Undo) */
+async function restorePayments(payments: PaymentRow[]) {
+  await db.transaction('rw', db.loans, db.payments, async () => {
+    await db.payments.bulkPut(payments);
+    for (const loanId of new Set(payments.map(p => p.loan_id))) await recalcStatus(loanId);
+  });
+}
+
+function useUndoablePaymentRemoval(
+  remove: (loanId: string) => Promise<PaymentRow[]>,
+  message: string,
+) {
   const queryClient = useQueryClient();
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['loans'] });
+    queryClient.invalidateQueries({ queryKey: ['loan'] });
+  };
   return useMutation({
-    mutationFn: async (loanId: string) => {
-      await db.transaction('rw', db.loans, db.payments, async () => {
-        await db.payments.where('loan_id').equals(loanId).delete();
-        await recalcStatus(loanId);
+    mutationFn: (loanId: string) => db.transaction('rw', db.loans, db.payments, () => remove(loanId)),
+    onSuccess: (removed) => {
+      refresh();
+      if (!removed.length) return;
+      toast.success(message, {
+        action: {
+          label: 'Undo',
+          onClick: () => restorePayments(removed)
+            .then(refresh)
+            .catch((e: Error) => toast.error('Undo failed: ' + e.message)),
+        },
       });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['loans'] });
-      queryClient.invalidateQueries({ queryKey: ['loan'] });
-      toast.success('Loan marked as unpaid');
     },
     onError: (e: any) => toast.error('Failed to update loan: ' + e.message),
   });
 }
 
-/** Delete the most recent payment for a loan → may revert PAID → PARTIAL/OPEN */
+/** Delete all payments for a loan → resets status to OPEN (undoable) */
+export function useResetLoanPayments() {
+  return useUndoablePaymentRemoval(async (loanId) => {
+    const payments = await db.payments.where('loan_id').equals(loanId).toArray();
+    await db.payments.bulkDelete(payments.map(p => p.id));
+    await recalcStatus(loanId);
+    return payments;
+  }, 'Loan marked as unpaid');
+}
+
+/** Delete the most recent payment for a loan → may revert PAID → PARTIAL/OPEN (undoable) */
 export function useDeleteLastPayment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (loanId: string) => {
-      await db.transaction('rw', db.loans, db.payments, async () => {
-        const payments = await db.payments.where('loan_id').equals(loanId).sortBy('created_at');
-        if (!payments.length) return;
-        await db.payments.delete(payments[payments.length - 1].id);
-        await recalcStatus(loanId);
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['loans'] });
-      queryClient.invalidateQueries({ queryKey: ['loan'] });
-      toast.success('Last payment removed');
-    },
-    onError: (e: any) => toast.error('Failed to update loan: ' + e.message),
-  });
+  return useUndoablePaymentRemoval(async (loanId) => {
+    const payments = await db.payments.where('loan_id').equals(loanId).sortBy('created_at');
+    const last = payments.at(-1);
+    if (!last) return [];
+    await db.payments.delete(last.id);
+    await recalcStatus(loanId);
+    return [last];
+  }, 'Last payment removed');
 }
 
 // ===== COMPUTED VALUES =====
 
 export function calculateBalance(loan: Loan): number {
   const totalPaid = loan.payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-  return Number(loan.amount) - totalPaid;
+  return roundMoney(Number(loan.amount) - totalPaid);
 }
 
 export function calculateTotals(loans: Loan[]) {
   const openLoans = loans.filter(l => l.status !== 'PAID' && Number(l.amount) > 0);
-  const toReceive = openLoans.filter(l => l.type === 'GIVEN').reduce((sum, l) => sum + calculateBalance(l), 0);
-  const toPay = openLoans.filter(l => l.type === 'TAKEN').reduce((sum, l) => sum + calculateBalance(l), 0);
+  const toReceive = roundMoney(openLoans.filter(l => l.type === 'GIVEN').reduce((sum, l) => sum + calculateBalance(l), 0));
+  const toPay = roundMoney(openLoans.filter(l => l.type === 'TAKEN').reduce((sum, l) => sum + calculateBalance(l), 0));
   return { toReceive, toPay };
 }

@@ -13,7 +13,7 @@ function readLockout(): number | null {
 }
 
 export function LockScreen() {
-  const { authenticate, authenticateWithBiometric, biometricEnabled, biometricType, verifyPIN } = useSecurity();
+  const { authenticate, authenticateWithBiometric, biometricEnabled, biometricType, verifyPIN, pinLength } = useSecurity();
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -67,15 +67,15 @@ export function LockScreen() {
   };
 
   const handleNumberClick = (num: string) => {
-    if (pin.length < 4 && !isSuccess && !lockoutUntil) {
+    if (pin.length < pinLength && !isSuccess && !lockoutUntil) {
       // Haptic feedback
       Haptics.impact({ style: ImpactStyle.Light });
       
       const newPin = pin + num;
       setPin(newPin);
       
-      // Auto-submit when 4 digits entered
-      if (newPin.length === 4) {
+      // Auto-submit when the full PIN is entered
+      if (newPin.length === pinLength) {
         verifyPin(newPin);
       }
     }
@@ -180,13 +180,13 @@ export function LockScreen() {
               ? 'Too many failed attempts'
               : isSuccess
               ? 'Unlocking…'
-              : 'Enter your 4-digit PIN to unlock'}
+              : `Enter your ${pinLength}-digit PIN to unlock`}
           </p>
         </div>
 
         {/* PIN Dots */}
         <div className={`flex gap-5 ${shake ? 'animate-shake' : ''}`}>
-          {Array(4).fill(0).map((_, i) => (
+          {Array(pinLength).fill(0).map((_, i) => (
             <div
               key={i}
               className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${

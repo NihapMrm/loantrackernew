@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatAmount } from '@/lib/formatting';
+import { roundMoney } from '@/lib/db';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'wallet': Wallet,
@@ -75,7 +76,7 @@ export default function AddLoan() {
     try {
       const data = {
         person_id: personId,
-        amount: parseFloat(amount),
+        amount: roundMoney(parseFloat(amount)),
         type,
         account_id: accountId || undefined,
         due_date: dueDate || undefined,

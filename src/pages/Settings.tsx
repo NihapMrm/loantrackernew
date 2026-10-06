@@ -623,6 +623,7 @@ function PinSetDialog({
   loading: boolean;
 }) {
   const [step, setStep] = useState<'enter' | 'confirm'>('enter');
+  const [length, setLength] = useState<4 | 6>(4);
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
@@ -649,19 +650,19 @@ function PinSetDialog({
 
   const handleNumber = (num: string) => {
     if (step === 'enter') {
-      if (pin.length >= 4) return;
+      if (pin.length >= length) return;
       const next = pin + num;
       setPin(next);
       setError('');
-      if (next.length === 4) {
+      if (next.length === length) {
         setTimeout(() => setStep('confirm'), 180);
       }
     } else {
-      if (confirmPin.length >= 4) return;
+      if (confirmPin.length >= length) return;
       const next = confirmPin + num;
       setConfirmPin(next);
       setError('');
-      if (next.length === 4) {
+      if (next.length === length) {
         setTimeout(async () => {
           if (next !== pin) {
             setConfirmPin('');
@@ -716,9 +717,28 @@ function PinSetDialog({
             <div className={`h-1 w-8 rounded-full transition-colors ${step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
           </div>
 
+          {/* PIN length (only before typing) */}
+          {step === 'enter' && pin.length === 0 && (
+            <div className="flex rounded-xl bg-muted p-1 -mt-2">
+              {([4, 6] as const).map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setLength(n)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-bold transition-colors",
+                    length === n ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                  )}
+                >
+                  {n} digits
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* PIN dots */}
           <div className={`flex gap-5 ${shake ? 'animate-shake' : ''}`}>
-            {Array(4).fill(0).map((_, i) => (
+            {Array(length).fill(0).map((_, i) => (
               <div
                 key={i}
                 className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
@@ -849,7 +869,7 @@ function SecuritySection() {
                 open={showSetPin}
                 onOpenChange={setShowSetPin}
                 title="Set PIN"
-                description="Choose a 4-digit PIN to secure your app"
+                description="Choose a 4 or 6-digit PIN to secure your app"
                 onConfirm={handlePinConfirm}
                 loading={loading}
               />
@@ -861,7 +881,7 @@ function SecuritySection() {
                 open={showChangePin}
                 onOpenChange={setShowChangePin}
                 title="Change PIN"
-                description="Enter a new 4-digit PIN"
+                description="Enter a new 4 or 6-digit PIN"
                 onConfirm={handlePinConfirm}
                 loading={loading}
               />

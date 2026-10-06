@@ -1,4 +1,5 @@
-import { todayISODate } from '@/lib/db';
+import { todayISODate, roundMoney } from '@/lib/db';
+import { formatAmount } from '@/lib/formatting';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSettings } from '@/hooks/useSettings';
@@ -32,7 +33,7 @@ export default function AddPayment() {
     amount: z
       .number()
       .positive('Amount must be greater than 0')
-      .max(balance, `Amount cannot exceed remaining balance of ${settings.currencySymbol} ${balance.toFixed(2)}`),
+      .max(balance, `Amount cannot exceed the remaining balance of ${formatAmount(balance)}`),
     payment_date: z.string().min(1, 'Payment date is required'),
     notes: z.string().trim().max(500, 'Notes are too long').optional(),
   });
@@ -45,7 +46,7 @@ export default function AddPayment() {
     try {
       const data = {
         loan_id: loanId,
-        amount: parseFloat(amount),
+        amount: roundMoney(parseFloat(amount)),
         payment_date: paymentDate,
         notes: notes || undefined,
       };

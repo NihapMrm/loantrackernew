@@ -3,10 +3,12 @@ import { NativeBiometric, BiometryType } from 'capacitor-native-biometric';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { PrivacyScreen } from '@/lib/privacyScreen';
+import { hashPin, verifyPinHash, isLegacyHash, isValidPin } from '@/lib/pinHash';
 
 interface SecurityContextType {
   isUnlocked: boolean;
   hasPIN: boolean;
+  pinLength: number;
   biometricEnabled: boolean;
   biometricType: string | null;
   setPIN: (pin: string) => Promise<void>;
@@ -21,16 +23,11 @@ interface SecurityContextType {
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
 
 const PIN_KEY = 'app_security_pin';
+const PIN_LENGTH_KEY = 'app_security_pin_length';
 const BIOMETRIC_KEY = 'app_biometric_enabled';
 
-async function hashPIN(pin: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(pin);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
+// PINs set before v2 have no stored length and are always 4 digits
+const readPinLength = () => (localStorage.getItem(PIN_LENGTH_KEY) === '6' ? 6 : 4);
 
 // Read synchronously so the very first render is already locked (no flash of data)
 const isNativePlatform = Capacitor.isNativePlatform();
@@ -47,6 +44,7 @@ export function allowExternalActivity(ms = 10000) {
 export function SecurityProvider({ children }: { children: ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(!pinSetAtLaunch);
   const [hasPIN, setHasPIN] = useState(pinSetAtLaunch);
+  const [pinLength, setPinLength] = useState(readPinLength);
   const [biometricEnabled, setBiometricEnabled] = useState(
     pinSetAtLaunch && localStorage.getItem(BIOMETRIC_KEY) === 'true'
   );
@@ -98,17 +96,19 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   }, [hasPIN]);
 
   const setPIN = async (pin: string) => {
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      throw new Error('PIN must be exactly 4 digits');
+    if (!isValidPin(pin)) {
+      throw new Error('PIN must be 4 or 6 digits');
     }
-    const hashed = await hashPIN(pin);
-    localStorage.setItem(PIN_KEY, hashed);
+    localStorage.setItem(PIN_KEY, await hashPin(pin));
+    localStorage.setItem(PIN_LENGTH_KEY, String(pin.length));
+    setPinLength(pin.length);
     setHasPIN(true);
     setIsUnlocked(true);
   };
 
   const removePIN = async () => {
     localStorage.removeItem(PIN_KEY);
+    localStorage.removeItem(PIN_LENGTH_KEY);
     localStorage.removeItem(BIOMETRIC_KEY);
     setHasPIN(false);
     setBiometricEnabled(false);
@@ -117,9 +117,10 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
 
   const verifyPIN = async (pin: string): Promise<boolean> => {
     const stored = localStorage.getItem(PIN_KEY);
-    if (!stored) return false;
-    const hashed = await hashPIN(pin);
-    return stored === hashed;
+    if (!stored || !(await verifyPinHash(pin, stored))) return false;
+    // Upgrade a v1 unsalted SHA-256 hash now that we have the PIN
+    if (isLegacyHash(stored)) localStorage.setItem(PIN_KEY, await hashPin(pin));
+    return true;
   };
 
   const authenticate = async (pin: string): Promise<boolean> => {
@@ -169,6 +170,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       value={{
         isUnlocked,
         hasPIN,
+        pinLength,
         biometricEnabled,
         biometricType,
         setPIN,

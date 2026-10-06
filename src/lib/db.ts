@@ -60,6 +60,21 @@ class LoanTrackerDB extends Dexie {
       loans: 'id, person_id, account_id, status, type, created_at',
       payments: 'id, loan_id, payment_date',
     });
+    // v2: index due_date (reminders, overdue filter); clean up v1 data in place
+    this.version(2).stores({
+      loans: 'id, person_id, account_id, status, type, created_at, due_date',
+    }).upgrade(async tx => {
+      const paid = new Map<string, number>();
+      await tx.table<PaymentRow, string>('payments').toCollection().modify(p => {
+        p.amount = roundMoney(p.amount);
+        p.payment_date = normalizePaymentDate(p.payment_date);
+        paid.set(p.loan_id, (paid.get(p.loan_id) ?? 0) + p.amount);
+      });
+      await tx.table<LoanRow, string>('loans').toCollection().modify(l => {
+        l.amount = roundMoney(l.amount);
+        l.status = deriveStatus(l.amount, paid.get(l.id) ?? 0);
+      });
+    });
   }
 }
 
@@ -72,6 +87,24 @@ export function generateId(): string {
 
 export function nowISO(): string {
   return new Date().toISOString();
+}
+
+/** Round money to 2 decimals so float sums like 0.1 + 0.2 don't drift */
+export function roundMoney(n: number): number {
+  return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+}
+
+/** Status rule shared by every payment/amount change: PAID ≥ amount, PARTIAL > 0, else OPEN */
+export function deriveStatus(amount: number, totalPaid: number): LoanStatus {
+  const paid = roundMoney(totalPaid);
+  if (paid >= roundMoney(amount)) return 'PAID';
+  if (paid > 0) return 'PARTIAL';
+  return 'OPEN';
+}
+
+/** Midnight-UTC timestamps written by older versions are really calendar days */
+export function normalizePaymentDate(s: string): string {
+  return /^\d{4}-\d{2}-\d{2}T00:00:00(\.0+)?Z$/.test(s) ? s.slice(0, 10) : s;
 }
 
 /**

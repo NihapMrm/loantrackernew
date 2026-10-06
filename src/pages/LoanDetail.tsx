@@ -19,7 +19,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Edit, Trash2, Plus, Calendar, FileText, User, Wallet, X } from 'lucide-react';
-import { format } from 'date-fns';
 import { formatDate } from '@/lib/formatting';
 
 export default function LoanDetail() {
@@ -163,7 +162,7 @@ export default function LoanDetail() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Created</p>
-                  <p className="font-medium">{format(new Date(loan.created_at), 'MMMM d, yyyy')}</p>
+                  <p className="font-medium">{formatDate(loan.created_at)}</p>
                 </div>
               </div>
               {loan.due_date && (

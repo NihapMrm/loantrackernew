@@ -1,5 +1,6 @@
 import { format as dateFnsFormat } from 'date-fns';
 import { getSettings, AppSettings } from '@/hooks/useSettings';
+import { parseLocalDate } from '@/lib/db';
 
 /** Format an amount using the user's currency + number settings */
 export function formatAmount(amount: number, overrideSettings?: AppSettings): string {
@@ -18,7 +19,8 @@ export function formatAmount(amount: number, overrideSettings?: AppSettings): st
 export function formatDate(date: string | Date, overrideSettings?: AppSettings): string {
   try {
     const s = overrideSettings ?? getSettings();
-    const d = typeof date === 'string' ? new Date(date) : date;
+    const d = typeof date === 'string' ? parseLocalDate(date) : date;
+    if (isNaN(d.getTime())) return '—';
     return dateFnsFormat(d, s.dateFormat);
   } catch {
     return String(date);

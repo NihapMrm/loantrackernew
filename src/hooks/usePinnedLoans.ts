@@ -17,6 +17,20 @@ function save(ids: string[]) {
   window.dispatchEvent(new Event(PIN_EVENT));
 }
 
+/** Drop pins for loans that no longer exist (deleted, or replaced by an import) */
+export function unpinLoans(ids: string[]) {
+  const current = load();
+  const next = current.filter(i => !ids.includes(i));
+  if (next.length !== current.length) save(next);
+}
+
+/** Keep only pins whose loan is in `existingIds` */
+export function prunePinnedLoans(existingIds: Set<string>) {
+  const current = load();
+  const next = current.filter(i => existingIds.has(i));
+  if (next.length !== current.length) save(next);
+}
+
 export function usePinnedLoans() {
   const [pinnedIds, setPinnedIds] = useState<string[]>(load);
 
