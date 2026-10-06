@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db, generateId, nowISO, todayISODate } from '@/lib/db';
+import { db, generateId, nowISO, todayISODate, parseLocalDate } from '@/lib/db';
 import { toast } from 'sonner';
 import type { Account } from '@/hooks/useAccounts';
 
@@ -49,8 +49,8 @@ export function deriveStatus(amount: number, totalPaid: number): LoanStatus {
   return 'OPEN';
 }
 
-/** Re-read a loan's payments and store the matching status */
-async function recalcStatus(loanId: string) {
+/** Re-read a loan's payments and store the matching status. Call inside the write's transaction. */
+export async function recalcStatus(loanId: string) {
   const loan = await db.loans.get(loanId);
   if (!loan) return;
   const payments = await db.payments.where('loan_id').equals(loanId).toArray();
@@ -169,7 +169,7 @@ async function enrichLoans(loans: LoanRowLike[]): Promise<Loan[]> {
   const paymentsByLoan = new Map<string, Payment[]>();
   for (const p of payments) {
     const list = paymentsByLoan.get(p.loan_id) ?? [];
-    list.push({ ...p, payment_date: toDate(p.payment_date), created_at: toDate(p.created_at) });
+    list.push({ ...p, payment_date: parseLocalDate(p.payment_date), created_at: toDate(p.created_at) });
     paymentsByLoan.set(p.loan_id, list);
   }
   return loans.map(loan => {
@@ -179,7 +179,7 @@ async function enrichLoans(loans: LoanRowLike[]): Promise<Loan[]> {
       ...loan,
       created_at: toDate(loan.created_at),
       updated_at: toDate(loan.updated_at),
-      due_date: loan.due_date ? new Date(loan.due_date) : null,
+      due_date: loan.due_date ? parseLocalDate(loan.due_date) : null,
       person: person ? { ...person, created_at: toDate(person.created_at), updated_at: toDate(person.updated_at) } : undefined,
       account: accountRow ? { ...accountRow, created_at: toDate(accountRow.created_at), updated_at: toDate(accountRow.updated_at) } as Account : undefined,
       payments: paymentsByLoan.get(loan.id) ?? [],
@@ -272,9 +272,11 @@ export function useUpdateLoan() {
       if (data.account_id !== undefined) updates.account_id = data.account_id || null;
       if (data.due_date !== undefined) updates.due_date = data.due_date || null;
       if (data.notes !== undefined) updates.notes = data.notes?.trim() || null;
-      await db.loans.update(id, updates);
-      // Amount may have moved past (or below) what's already paid
-      if (data.amount !== undefined) await recalcStatus(id);
+      await db.transaction('rw', db.loans, db.payments, async () => {
+        await db.loans.update(id, updates);
+        // Amount may have moved past (or below) what's already paid
+        if (data.amount !== undefined) await recalcStatus(id);
+      });
     },
     onSuccess: (_, v) => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
@@ -322,8 +324,10 @@ export function useCreatePayment() {
         notes: data.notes?.trim() || null,
         created_at: now,
       };
-      await db.payments.add(payment);
-      await recalcStatus(data.loan_id);
+      await db.transaction('rw', db.loans, db.payments, async () => {
+        await db.payments.add(payment);
+        await recalcStatus(data.loan_id);
+      });
       return payment;
     },
     onSuccess: () => {
@@ -339,9 +343,11 @@ export function useDeletePayment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const payment = await db.payments.get(id);
-      await db.payments.delete(id);
-      if (payment) await recalcStatus(payment.loan_id);
+      await db.transaction('rw', db.loans, db.payments, async () => {
+        const payment = await db.payments.get(id);
+        await db.payments.delete(id);
+        if (payment) await recalcStatus(payment.loan_id);
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
@@ -357,9 +363,10 @@ export function useResetLoanPayments() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (loanId: string) => {
-      const now = nowISO();
-      await db.payments.where('loan_id').equals(loanId).delete();
-      await db.loans.update(loanId, { status: 'OPEN', updated_at: now });
+      await db.transaction('rw', db.loans, db.payments, async () => {
+        await db.payments.where('loan_id').equals(loanId).delete();
+        await recalcStatus(loanId);
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
@@ -375,10 +382,12 @@ export function useDeleteLastPayment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (loanId: string) => {
-      const payments = await db.payments.where('loan_id').equals(loanId).sortBy('created_at');
-      if (!payments.length) return;
-      await db.payments.delete(payments[payments.length - 1].id);
-      await recalcStatus(loanId);
+      await db.transaction('rw', db.loans, db.payments, async () => {
+        const payments = await db.payments.where('loan_id').equals(loanId).sortBy('created_at');
+        if (!payments.length) return;
+        await db.payments.delete(payments[payments.length - 1].id);
+        await recalcStatus(loanId);
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });

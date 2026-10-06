@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Edit, Trash2, Plus, Calendar, FileText, User, Wallet, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/formatting';
 
 export default function LoanDetail() {
   const { id } = useParams<{ id: string }>();
@@ -172,7 +173,7 @@ export default function LoanDetail() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Due date</p>
-                    <p className="font-medium">{format(new Date(loan.due_date), 'MMMM d, yyyy')}</p>
+                    <p className="font-medium">{formatDate(loan.due_date)}</p>
                   </div>
                 </div>
               )}
@@ -243,7 +244,7 @@ function PaymentRow({ payment, onDelete }: { payment: Payment; onDelete: () => v
         >
           <div>
             <p className="text-sm text-muted-foreground">
-              {format(new Date(payment.payment_date), 'MMM d, yyyy')}
+              {formatDate(payment.payment_date)}
             </p>
             {payment.notes && (
               <p className="text-xs text-muted-foreground mt-0.5">{payment.notes}</p>

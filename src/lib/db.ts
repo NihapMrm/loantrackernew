@@ -74,6 +74,15 @@ export function nowISO(): string {
   return new Date().toISOString();
 }
 
+/**
+ * Parse a stored date. A bare `yyyy-MM-dd` is a calendar day, so it becomes local midnight
+ * (`new Date('2026-03-20')` would be UTC midnight and show the day before west of UTC).
+ */
+export function parseLocalDate(s: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
+}
+
 /** Today's date as yyyy-MM-dd in local time (the format <input type="date"> uses) */
 export function todayISODate(): string {
   const d = new Date();

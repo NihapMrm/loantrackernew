@@ -10,6 +10,8 @@ export interface AppSettings {
   dateFormat: 'MMM d, yyyy' | 'dd/MM/yyyy' | 'MM/dd/yyyy' | 'yyyy-MM-dd';
   // Haptic feedback on swipe actions
   hapticFeedback: boolean;
+  // Daily backup to Documents/LoanTracker (Android only)
+  autoBackup: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   numberLocale: 'en-US',
   dateFormat: 'MMM d, yyyy',
   hapticFeedback: true,
+  autoBackup: true,
 };
 
 const STORAGE_KEY = 'lt_settings';

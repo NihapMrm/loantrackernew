@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { NativeBiometric, BiometryType } from 'capacitor-native-biometric';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { PrivacyScreen } from '@/lib/privacyScreen';
 
 interface SecurityContextType {
   isUnlocked: boolean;
@@ -31,23 +32,21 @@ async function hashPIN(pin: string): Promise<string> {
     .join('');
 }
 
+// Read synchronously so the very first render is already locked (no flash of data)
+const isNativePlatform = Capacitor.isNativePlatform();
+const pinSetAtLaunch = isNativePlatform && !!localStorage.getItem(PIN_KEY);
+
 export function SecurityProvider({ children }: { children: ReactNode }) {
-  const [isUnlocked, setIsUnlocked] = useState(true); // Default unlocked (no security)
-  const [hasPIN, setHasPIN] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(!pinSetAtLaunch);
+  const [hasPIN, setHasPIN] = useState(pinSetAtLaunch);
+  const [biometricEnabled, setBiometricEnabled] = useState(
+    pinSetAtLaunch && localStorage.getItem(BIOMETRIC_KEY) === 'true'
+  );
   const [biometricType, setBiometricType] = useState<string | null>(null);
-  const [isNativePlatform, setIsNativePlatform] = useState(false);
 
   useEffect(() => {
+    if (!isNativePlatform) return;
     const init = async () => {
-      const native = Capacitor.isNativePlatform();
-      setIsNativePlatform(native);
-
-      if (!native) {
-        setIsUnlocked(true);
-        return;
-      }
-
       // Check if biometric is available
       try {
         const result = await NativeBiometric.isAvailable();
@@ -62,24 +61,16 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.log('Biometric not available:', err);
       }
-
-      // Check if PIN is set
-      const pin = localStorage.getItem(PIN_KEY);
-      const hasPinSet = !!pin;
-      setHasPIN(hasPinSet);
-
-      // Check if biometric is enabled
-      const bioEnabled = localStorage.getItem(BIOMETRIC_KEY) === 'true';
-      setBiometricEnabled(bioEnabled);
-
-      // Lock app if PIN is set
-      if (hasPinSet) {
-        setIsUnlocked(false);
-      }
     };
 
     init();
   }, []);
+
+  // Hide app content in the recent-apps screen while a PIN protects it
+  useEffect(() => {
+    if (!isNativePlatform) return;
+    PrivacyScreen.setEnabled({ enabled: hasPIN }).catch(err => console.log('Privacy screen unavailable:', err));
+  }, [hasPIN]);
 
   useEffect(() => {
     if (!isNativePlatform || !hasPIN) return;
@@ -92,7 +83,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     return () => {
       listener.then(l => l.remove());
     };
-  }, [isNativePlatform, hasPIN]);
+  }, [hasPIN]);
 
   const setPIN = async (pin: string) => {
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {

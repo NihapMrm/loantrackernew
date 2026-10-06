@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { AmountDisplay, StatusBadge, MarqueeAmount } from '@/components/ui/amount-display';
 import { ArrowLeft, User, Calendar, Wallet, PiggyBank, Landmark, CreditCard, Banknote, Building2 } from 'lucide-react';
 import { useMemo } from 'react';
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/formatting';
 import confetti from 'canvas-confetti';
 import { SwipeableLoanCard, useSwipeOpen } from '@/components/SwipeableLoanCard';
 
@@ -207,7 +207,7 @@ function AccountLoanCard({ loan }: { loan: Loan }) {
                   {loan.due_date && (
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {format(new Date(loan.due_date), 'MMM d, yyyy')}
+                      {formatDate(loan.due_date)}
                     </span>
                   )}
                 </div>

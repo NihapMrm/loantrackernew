@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { SecurityProvider, useSecurity } from "@/lib/security";
 import { LockScreen } from "@/components/LockScreen";
+import { BackupManager } from "@/components/BackupManager";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -73,6 +74,7 @@ function AppContent() {
   return (
     <>
       <BackButtonHandler />
+      <BackupManager />
       <AppShell />
     </>
   );

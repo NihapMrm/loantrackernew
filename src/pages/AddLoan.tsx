@@ -14,6 +14,7 @@ import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Wallet, PiggyBank, Landmark, Cr
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { formatAmount } from '@/lib/formatting';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'wallet': Wallet,
@@ -82,6 +83,13 @@ export default function AddLoan() {
       };
       
       loanSchema.parse(data);
+
+      // An edit can't take the amount below what's already been repaid
+      const totalPaid = existingLoan?.payments?.reduce((s, p) => s + Number(p.amount), 0) ?? 0;
+      if (isEdit && data.amount < totalPaid) {
+        setErrors({ amount: `Amount can't be less than the ${formatAmount(totalPaid)} already paid` });
+        return;
+      }
       setErrors({});
 
       if (isEdit && id) {

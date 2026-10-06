@@ -1,8 +1,10 @@
 ﻿import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { LoanTrackerLogo } from "@/components/ui/LoanTrackerLogo";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
+import { prepareImport, restoreTables, buildBackupJson, markExported, getLastBackupDate, runAutoBackup, ImportReport, AUTO_BACKUP_FOLDER } from "@/lib/backup";
 import { useSecurity } from "@/lib/security";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -30,7 +32,6 @@ import {
   Database,
 } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,32 +54,8 @@ import { useSettings, AppSettings } from "@/hooks/useSettings";
 import { formatAmount, formatDate } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 
-const iso = z.string().min(1);
-const nullStr = z.string().nullable().optional().transform(v => v ?? null);
-const importSchema = z.object({
-  people: z.array(z.object({ id: z.string().min(1), name: z.string().min(1), phone: nullStr, notes: nullStr, created_at: iso, updated_at: iso }).passthrough()),
-  accounts: z.array(z.object({ id: z.string().min(1), name: z.string().min(1), description: nullStr, icon: z.string().default('wallet'), created_at: iso, updated_at: iso }).passthrough()).default([]),
-  loans: z.array(z.object({
-    id: z.string().min(1), person_id: z.string().min(1), account_id: nullStr,
-    amount: z.number().positive(), type: z.enum(['GIVEN', 'TAKEN']), status: z.enum(['OPEN', 'PARTIAL', 'PAID']),
-    due_date: nullStr, notes: nullStr, created_at: iso, updated_at: iso,
-  }).passthrough()),
-  payments: z.array(z.object({
-    id: z.string().min(1), loan_id: z.string().min(1), amount: z.number().positive(),
-    payment_date: iso, notes: nullStr, created_at: iso,
-  }).passthrough()),
-});
-
-interface ImportData {
-  version: number;
-  exportedAt: string;
-  people: any[];
-  accounts: any[];
-  loans: any[];
-  payments: any[];
-}
-
 export default function Settings() {
+  const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
@@ -86,6 +63,7 @@ export default function Settings() {
     accounts: number;
     loans: number;
     payments: number;
+    report: ImportReport;
   } | null>(null);
   const [importError, setImportError] = useState("");
 
@@ -103,37 +81,22 @@ export default function Settings() {
     setImportError("");
 
     try {
-      const text = await file.text();
-      const parsed = importSchema.safeParse(JSON.parse(text));
-      if (!parsed.success) {
-        const issue = parsed.error.issues[0];
-        throw new Error(`Invalid backup file (${issue.path.join(".")}: ${issue.message}).`);
+      let raw: unknown;
+      try {
+        raw = JSON.parse(await file.text());
+      } catch {
+        throw new Error("This file is not a LoanTracker backup (not valid JSON).");
       }
-      const data = parsed.data as ImportData;
-
-      // Strip user_id before importing (not needed offline)
-      const strip = (obj: any) => {
-        const { user_id, ...rest } = obj;
-        return rest;
-      };
-
-      await db.transaction("rw", db.people, db.accounts, db.loans, db.payments, async () => {
-        await db.people.clear();
-        await db.accounts.clear();
-        await db.loans.clear();
-        await db.payments.clear();
-
-        if (data.people?.length)   await db.people.bulkAdd(data.people.map(strip));
-        if (data.accounts?.length) await db.accounts.bulkAdd(data.accounts.map(strip));
-        if (data.loans?.length)    await db.loans.bulkAdd(data.loans.map(strip));
-        if (data.payments?.length) await db.payments.bulkAdd(data.payments.map(strip));
-      });
+      const { tables, report } = prepareImport(raw);
+      await restoreTables(tables);
+      queryClient.invalidateQueries();
 
       setImportResult({
-        people: data.people?.length ?? 0,
-        accounts: data.accounts?.length ?? 0,
-        loans: data.loans?.length ?? 0,
-        payments: data.payments?.length ?? 0,
+        people: tables.people.length,
+        accounts: tables.accounts.length,
+        loans: tables.loans.length,
+        payments: tables.payments.length,
+        report,
       });
 
       toast.success("Data imported successfully!");
@@ -155,6 +118,7 @@ export default function Settings() {
         await db.payments.clear();
       });
       setImportResult(null);
+      queryClient.invalidateQueries();
       toast.success("All data cleared.");
     } catch (err: any) {
       toast.error("Failed to clear data: " + err.message);
@@ -163,21 +127,7 @@ export default function Settings() {
 
   const handleExport = async () => {
     try {
-      const [people, accounts, loans, payments] = await Promise.all([
-        db.people.toArray(),
-        db.accounts.toArray(),
-        db.loans.toArray(),
-        db.payments.toArray(),
-      ]);
-      const exportData = {
-        exportedAt: new Date().toISOString(),
-        version: 1,
-        people,
-        accounts,
-        loans,
-        payments,
-      };
-      const json = JSON.stringify(exportData, null, 2);
+      const json = await buildBackupJson();
       const fileName = `loantracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
 
       if (Capacitor.isNativePlatform()) {
@@ -198,6 +148,7 @@ export default function Settings() {
           url: uri,
           dialogTitle: "Save backup to…",
         });
+        markExported();
       } else {
         // Browser fallback
         const blob = new Blob([json], { type: "application/json" });
@@ -209,6 +160,7 @@ export default function Settings() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        markExported();
         toast.success("Backup downloaded!");
       }
     } catch (err: any) {
@@ -293,9 +245,10 @@ export default function Settings() {
           {importResult && (
             <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-3.5 flex items-start gap-2.5">
               <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-              <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                Imported {importResult.people} people, {importResult.accounts} accounts, {importResult.loans} loans, {importResult.payments} payments.
-              </p>
+              <div className="text-sm text-emerald-700 dark:text-emerald-400 space-y-1">
+                <p>Imported {importResult.people} people, {importResult.accounts} accounts, {importResult.loans} loans, {importResult.payments} payments.</p>
+                {importNotes(importResult.report).map(note => <p key={note} className="text-xs opacity-80">{note}</p>)}
+              </div>
             </div>
           )}
           {importError && (
@@ -304,6 +257,7 @@ export default function Settings() {
               <p className="text-sm text-rose-700 dark:text-rose-400">{importError}</p>
             </div>
           )}
+          <AutoBackupRow />
           <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFilePicked} />
           <AlertDialog open={!!pendingFile} onOpenChange={(o) => !o && setPendingFile(null)}>
             <AlertDialogContent>
@@ -602,6 +556,51 @@ function DisplaySection() {
 }
 
 /* ── Small helpers ── */
+
+/** Plain-language lines for what the import had to repair */
+function importNotes(r: ImportReport): string[] {
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const notes: string[] = [];
+  if (r.droppedPayments) notes.push(`Skipped ${plural(r.droppedPayments, "payment")} not linked to any loan.`);
+  if (r.droppedLoans) notes.push(`Skipped ${plural(r.droppedLoans, "loan")} whose person was missing.`);
+  if (r.clearedAccounts) notes.push(`Cleared the account on ${plural(r.clearedAccounts, "loan")} (account missing).`);
+  if (r.fixedStatuses) notes.push(`Corrected the status of ${plural(r.fixedStatuses, "loan")}.`);
+  return notes;
+}
+
+/** Daily auto-backup toggle (Android) or last-export note (browser) */
+function AutoBackupRow() {
+  const { settings, update } = useSettings();
+  const [lastBackup, setLastBackup] = useState(getLastBackupDate);
+  const native = Capacitor.isNativePlatform();
+  const lastText = lastBackup ? `Last backup ${formatDate(lastBackup)}` : "No backup yet";
+
+  const handleToggle = async (on: boolean) => {
+    update({ autoBackup: on });
+    if (on) {
+      // Settings are read from storage, so the new value is already visible to runAutoBackup
+      if (await runAutoBackup()) toast.success(`Backup saved to Documents/${AUTO_BACKUP_FOLDER}`);
+      setLastBackup(getLastBackupDate());
+    }
+  };
+
+  return (
+    <div className="rounded-2xl bg-card border border-border p-4 flex items-center gap-3 shadow-sm mt-2.5">
+      <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+        <Database className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-foreground">{native ? "Daily Auto-Backup" : "Backups"}</p>
+        <p className="text-xs text-muted-foreground">
+          {native
+            ? `Keeps 7 days in Documents/${AUTO_BACKUP_FOLDER}, even after uninstall. ${lastText}.`
+            : `Export regularly; browser data can be cleared. ${lastText}.`}
+        </p>
+      </div>
+      {native && <Switch checked={settings.autoBackup} onCheckedChange={handleToggle} />}
+    </div>
+  );
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
