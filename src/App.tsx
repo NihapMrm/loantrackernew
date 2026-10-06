@@ -140,7 +140,7 @@ const App = () => (
     <SecurityProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner position="top-center"/>
+        <Sonner />
         <HashRouter>
           <AppContent />
         </HashRouter>

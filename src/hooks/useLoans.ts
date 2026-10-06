@@ -385,6 +385,7 @@ function useUndoablePaymentRemoval(
       refresh();
       if (!removed.length) return;
       toast.success(message, {
+        duration: 6000,
         action: {
           label: 'Undo',
           onClick: () => restorePayments(removed)
