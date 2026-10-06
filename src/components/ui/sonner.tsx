@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2 } from "lucide-reac
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-// Dark pill above the bottom nav (64px bar + 16px margin + safe area), clear of the status bar
+// Dark pill above the bottom nav and its raised + button (bar 64px + margin + safe area), clear of the status bar
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
 
@@ -13,7 +13,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       position="bottom-center"
       offset={{ bottom: 24 }}
-      mobileOffset={{ bottom: "calc(max(1rem, env(safe-area-inset-bottom)) + 76px)", left: 16, right: 16 }}
+      mobileOffset={{ bottom: "calc(max(1rem, env(safe-area-inset-bottom)) + 104px)", left: 16, right: 16 }}
       gap={8}
       visibleToasts={3}
       icons={{

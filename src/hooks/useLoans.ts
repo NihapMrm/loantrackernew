@@ -334,10 +334,21 @@ export function useCreatePayment() {
       });
       return payment;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['loans'] });
-      queryClient.invalidateQueries({ queryKey: ['loan'] });
-      toast.success('Payment recorded');
+    onSuccess: (payment) => {
+      const refresh = () => {
+        queryClient.invalidateQueries({ queryKey: ['loans'] });
+        queryClient.invalidateQueries({ queryKey: ['loan'] });
+      };
+      refresh();
+      toast.success(payment.notes === 'Marked as paid' ? 'Marked as paid' : 'Payment recorded', {
+        duration: 6000,
+        action: {
+          label: 'Undo',
+          onClick: () => removePayment(payment.id)
+            .then(refresh)
+            .catch((e: Error) => toast.error('Undo failed: ' + e.message)),
+        },
+      });
     },
     onError: (e: any) => toast.error('Failed to record payment: ' + e.message),
   });
@@ -346,19 +357,22 @@ export function useCreatePayment() {
 export function useDeletePayment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      await db.transaction('rw', db.loans, db.payments, async () => {
-        const payment = await db.payments.get(id);
-        await db.payments.delete(id);
-        if (payment) await recalcStatus(payment.loan_id);
-      });
-    },
+    mutationFn: removePayment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loan'] });
       toast.success('Payment deleted');
     },
     onError: (e: any) => toast.error('Failed to delete payment: ' + e.message),
+  });
+}
+
+/** Delete one payment and re-derive its loan's status (used by Undo after recording) */
+async function removePayment(id: string) {
+  await db.transaction('rw', db.loans, db.payments, async () => {
+    const payment = await db.payments.get(id);
+    await db.payments.delete(id);
+    if (payment) await recalcStatus(payment.loan_id);
   });
 }
 
