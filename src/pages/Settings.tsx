@@ -5,7 +5,7 @@ import { LoanTrackerLogo } from "@/components/ui/LoanTrackerLogo";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { prepareImport, restoreTables, buildBackupJson, markExported, getLastBackupDate, runAutoBackup, ImportReport, AUTO_BACKUP_FOLDER } from "@/lib/backup";
-import { useSecurity } from "@/lib/security";
+import { useSecurity, allowExternalActivity } from "@/lib/security";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Capacitor } from "@capacitor/core";
@@ -142,6 +142,7 @@ export default function Settings() {
           path: fileName,
           directory: Directory.Cache,
         });
+        allowExternalActivity();
         await Share.share({
           title: "LoanTracker Backup",
           text: "LoanTracker backup file",
@@ -224,7 +225,7 @@ export default function Settings() {
 
             {/* Import tile */}
             <button
-              onClick={() => fileRef.current?.click()}
+              onClick={() => { allowExternalActivity(); fileRef.current?.click(); }}
               className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-3 text-left active:scale-[0.97] transition-transform shadow-sm"
             >
               <span className="w-10 h-10 rounded-[12px] bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">

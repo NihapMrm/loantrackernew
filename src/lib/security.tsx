@@ -36,6 +36,14 @@ async function hashPIN(pin: string): Promise<string> {
 const isNativePlatform = Capacitor.isNativePlatform();
 const pinSetAtLaunch = isNativePlatform && !!localStorage.getItem(PIN_KEY);
 
+// The file picker and share sheet are separate Android screens, so opening them pauses the app.
+// Re-locking then would unmount the page that is waiting for the result, so the app can mark
+// a pause as expected for a short window before it opens one of them.
+let skipLockUntil = 0;
+export function allowExternalActivity(ms = 10000) {
+  skipLockUntil = Date.now() + ms;
+}
+
 export function SecurityProvider({ children }: { children: ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(!pinSetAtLaunch);
   const [hasPIN, setHasPIN] = useState(pinSetAtLaunch);
@@ -76,12 +84,16 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     if (!isNativePlatform || !hasPIN) return;
 
     // Re-lock when app goes to background
-    const listener = CapacitorApp.addListener('pause', () => {
+    const pause = CapacitorApp.addListener('pause', () => {
+      if (Date.now() < skipLockUntil) return;
       setIsUnlocked(false);
     });
+    // Back in the app: the next pause is a real one again
+    const resume = CapacitorApp.addListener('resume', () => { skipLockUntil = 0; });
 
     return () => {
-      listener.then(l => l.remove());
+      pause.then(l => l.remove());
+      resume.then(l => l.remove());
     };
   }, [hasPIN]);
 
