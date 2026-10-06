@@ -76,3 +76,11 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
+
+// google-services.json (left from the old Firebase version) only lists the release package id,
+// and nothing in the app uses Firebase, so skip it for the ".v2test" debug build
+tasks.configureEach { task ->
+    if (task.name == 'processDebugGoogleServices') {
+        task.enabled = false
+    }
+}
